@@ -1,0 +1,124 @@
+# .github/workflows/copilot-pr-review.yml
+#
+# Automated PR Code Review using GitHub Copilot
+#
+# This workflow triggers whenever a pull request is opened, updated (synchronized),
+# or reopened. Copilot analyzes the diff and posts inline review comments suggesting
+# improvements, flagging potential bugs, and noting style issues.
+#
+# Requirements:
+#   - GitHub Copilot Business or Enterprise license on the repository's organization
+#   - Workflow permissions: pull-requests: write (to post review comments)
+#   - The github/copilot-code-review action is provided by GitHub — no marketplace install needed
+#
+# To make this check required before merging:
+#   Settings → Branches → Add rule → Require status checks → "Copilot Code Review"
+
+name: Copilot Code Review
+
+on:
+  pull_request:
+    # Run on all pull request activity that changes the diff
+    types:
+      - opened        # New PR created
+      - synchronize   # New commits pushed to existing PR
+      - reopened      # Previously closed PR reopened
+
+# Minimal permissions: only what is needed to read code and write review comments
+permissions:
+  contents: read        # Required to check out and read the repository code
+  pull-requests: write  # Required to post review comments on the PR
+
+jobs:
+  copilot-review:
+    name: Copilot Code Review
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository at the PR head commit
+      # fetch-depth: 0 ensures git history is available for diff calculations
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Run the Copilot code review action
+      #
+      # The github/copilot-code-review action:
+      #   - Reads the PR diff (base..head)
+      #   - Sends relevant code chunks to Copilot for analysis
+      #   - Posts inline comments where it finds issues
+      #   - Submits a review summary (approve / request changes / comment)
+      #
+      # Configuration options:
+      #   review-style: "suggest"   → posts suggested changes (one-click apply)
+      #                 "comment"   → posts comments without suggestions
+      #                 "request"   → always requests changes (more strict)
+      #
+      #   comment-on:   "all"       → comment on every file changed
+      #                 "issues"    → only comment when there are actual concerns
+      #
+      #   ignore-paths: glob patterns for files to skip (e.g., generated code, vendored files)
+      - name: Run Copilot code review
+        uses: github/copilot-code-review@v1
+        with:
+          # Post inline suggestions that can be applied with one click in the GitHub UI
+          review-style: suggest
+
+          # Only post comments when there is something meaningful to flag
+          # Change to "all" if you want coverage confirmation on every file
+          comment-on: issues
+
+          # Skip generated files, lock files, and vendored dependencies
+          # These are typically not worth reviewing and add noise
+          ignore-paths: |
+            **/vendor/**
+            **/node_modules/**
+            **/*.lock
+            **/dist/**
+            **/build/**
+            **/__generated__/**
+            **/migrations/**
+
+          # Focus the review on these concern categories
+          # Options: bugs, security, performance, style, readability, maintainability
+          # Omit this key to let Copilot decide what to focus on
+          focus-areas: |
+            bugs
+            security
+            performance
+
+      # Step 3: (Optional) Add a label to mark this PR as Copilot-reviewed
+      # This makes it easy to filter PRs in the GitHub UI
+      # Remove this step if you don't want automatic labeling
+      - name: Label PR as Copilot-reviewed
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Ensure the label exists before trying to apply it
+            const labelName = 'copilot-reviewed';
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName,
+              });
+            } catch (e) {
+              // Label doesn't exist yet — create it with a recognizable color
+              await github.rest.issues.createLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName,
+                color: '0075ca',
+                description: 'This PR has been reviewed by GitHub Copilot',
+              });
+            }
+
+            // Apply the label to the PR
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              labels: [labelName],
+            });

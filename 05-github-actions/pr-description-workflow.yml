@@ -1,0 +1,244 @@
+# .github/workflows/pr-description.yml
+#
+# Auto-Generate PR Descriptions
+#
+# When a developer opens a pull request without a description, this workflow:
+#   1. Checks if the PR body is empty (does not overwrite existing descriptions)
+#   2. Gets the list of changed files and the diff
+#   3. Uses the GitHub Models API (or a template) to generate a meaningful description
+#   4. Updates the PR body via the GitHub REST API
+#
+# This removes the friction of writing PR descriptions and ensures reviewers
+# always have context about what changed and why.
+#
+# The workflow uses the GitHub Models API (api.github.com/models) which provides
+# access to AI models for use in GitHub Actions. This is available to repositories
+# on GitHub.com with Copilot enabled.
+#
+# If GitHub Models is not available in your plan, the workflow falls back to a
+# structured template generated from the diff metadata.
+#
+# Trigger: pull_request opened (not synchronize — we don't overwrite once set)
+
+name: Generate PR Description
+
+on:
+  pull_request:
+    types:
+      - opened   # Only on initial PR creation, not on subsequent pushes
+
+permissions:
+  contents: read       # Checkout code and read the diff
+  pull-requests: write # Update the PR body
+
+jobs:
+  generate-description:
+    name: Generate PR Description
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Check out full history for accurate diffs ─────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Full history needed for git diff base...head
+
+      # ── Step 2: Check if PR already has a description ─────────────────────
+      # If the developer wrote a description, we do not overwrite it.
+      # This check runs before any expensive operations.
+      - name: Check if PR body is empty
+        id: check-body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const body = (pr.body ?? '').trim();
+
+            // Consider the PR "empty" if body is blank or contains only whitespace
+            const isEmpty = body.length === 0;
+            core.setOutput('is_empty', isEmpty ? 'true' : 'false');
+
+            if (!isEmpty) {
+              core.info('PR already has a description — skipping generation.');
+            } else {
+              core.info('PR description is empty — will generate one.');
+            }
+
+      # ── Step 3: Collect diff metadata ─────────────────────────────────────
+      # Only runs if the PR body was empty
+      - name: Collect diff and changed files
+        id: diff
+        if: steps.check-body.outputs.is_empty == 'true'
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+
+          # Get list of changed files with their change type (A/M/D/R)
+          git diff --name-status "$BASE_SHA..$HEAD_SHA" > /tmp/changed-files.txt
+          echo "Changed files:"
+          cat /tmp/changed-files.txt
+
+          # Get a compact diff (limited to 150 lines to stay within API limits)
+          # We use --unified=2 for a tighter context window
+          git diff --unified=2 "$BASE_SHA..$HEAD_SHA" \
+            -- ':(exclude)package-lock.json' \
+               ':(exclude)yarn.lock' \
+               ':(exclude)*.lock' \
+               ':(exclude)dist/**' \
+               ':(exclude)build/**' \
+            | head -150 > /tmp/diff-excerpt.txt
+
+          # Count stats
+          ADDED=$(git diff --numstat "$BASE_SHA..$HEAD_SHA" | awk '{sum += $1} END {print sum+0}')
+          DELETED=$(git diff --numstat "$BASE_SHA..$HEAD_SHA" | awk '{sum += $2} END {print sum+0}')
+          FILES=$(git diff --name-only "$BASE_SHA..$HEAD_SHA" | wc -l | tr -d ' ')
+
+          echo "added_lines=$ADDED" >> $GITHUB_OUTPUT
+          echo "deleted_lines=$DELETED" >> $GITHUB_OUTPUT
+          echo "changed_files=$FILES" >> $GITHUB_OUTPUT
+
+      # ── Step 4: Generate PR description using GitHub Models API ──────────
+      # Uses the gpt-4o model via the GitHub Models endpoint.
+      # Falls back to a structured template if the API call fails.
+      - name: Generate PR description with AI
+        id: generate
+        if: steps.check-body.outputs.is_empty == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          ADDED_LINES: ${{ steps.diff.outputs.added_lines }}
+          DELETED_LINES: ${{ steps.diff.outputs.deleted_lines }}
+          CHANGED_FILES: ${{ steps.diff.outputs.changed_files }}
+        run: |
+          # Read the diff excerpt
+          DIFF_CONTENT=$(cat /tmp/diff-excerpt.txt 2>/dev/null || echo "(diff not available)")
+          CHANGED_FILES_LIST=$(cat /tmp/changed-files.txt 2>/dev/null || echo "(not available)")
+
+          # Try the GitHub Models API
+          # This endpoint is available on GitHub.com with Copilot enabled
+          PROMPT="You are a helpful assistant that writes clear pull request descriptions.
+
+          PR Title: ${PR_TITLE}
+          Branch: ${PR_BRANCH}
+          Changed files (${CHANGED_FILES} total, +${ADDED_LINES}/-${DELETED_LINES} lines):
+          ${CHANGED_FILES_LIST}
+
+          Diff excerpt:
+          ${DIFF_CONTENT}
+
+          Write a concise PR description with these sections:
+          ## Summary
+          (2-3 sentences explaining what this PR does and why)
+
+          ## Changes
+          (bullet list of the main changes, grouped by concern)
+
+          ## Testing
+          (brief note on how to verify the changes)
+
+          Keep it factual and based on the diff. Do not invent details not present in the diff."
+
+          # Call GitHub Models API (requires GITHUB_TOKEN with Copilot access)
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Authorization: Bearer $GITHUB_TOKEN" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/vnd.github+json" \
+            "https://models.inference.ai.azure.com/chat/completions" \
+            -d "$(jq -n \
+              --arg prompt "$PROMPT" \
+              '{
+                model: "gpt-4o-mini",
+                messages: [{role: "user", content: $prompt}],
+                max_tokens: 500,
+                temperature: 0.3
+              }'
+            )" 2>/dev/null)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          if [ "$HTTP_CODE" = "200" ]; then
+            # Extract the generated description from the API response
+            GENERATED=$(echo "$BODY" | jq -r '.choices[0].message.content // empty')
+            if [ -n "$GENERATED" ]; then
+              echo "$GENERATED" > /tmp/generated-description.txt
+              echo "method=ai" >> $GITHUB_OUTPUT
+              echo "AI-generated description written."
+            else
+              echo "method=template" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "GitHub Models API returned HTTP $HTTP_CODE — falling back to template."
+            echo "method=template" >> $GITHUB_OUTPUT
+          fi
+
+      # ── Step 5: Build template description if AI was unavailable ─────────
+      - name: Build template description
+        if: steps.check-body.outputs.is_empty == 'true' && steps.generate.outputs.method == 'template'
+        env:
+          PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          ADDED_LINES: ${{ steps.diff.outputs.added_lines }}
+          DELETED_LINES: ${{ steps.diff.outputs.deleted_lines }}
+          CHANGED_FILES: ${{ steps.diff.outputs.changed_files }}
+        run: |
+          CHANGED_FILES_LIST=$(cat /tmp/changed-files.txt 2>/dev/null | sed 's/^/- /' || echo "- (not available)")
+
+          cat > /tmp/generated-description.txt << EOF
+          ## Summary
+
+          <!-- Describe what this PR does and why. -->
+
+          ## Changes
+
+          This PR modifies **${CHANGED_FILES} file(s)** (+${ADDED_LINES}/-${DELETED_LINES} lines) on branch \`${PR_BRANCH}\`:
+
+          $(echo "$CHANGED_FILES_LIST")
+
+          ## Testing
+
+          <!-- Describe how you tested these changes. -->
+
+          - [ ] Unit tests pass locally
+          - [ ] Manual testing completed
+          - [ ] No breaking changes introduced
+
+          ---
+          _This description was auto-generated. Please review and update before requesting review._
+          EOF
+
+      # ── Step 6: Update the PR body ────────────────────────────────────────
+      - name: Update PR description
+        if: steps.check-body.outputs.is_empty == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+
+            let newBody;
+            try {
+              newBody = fs.readFileSync('/tmp/generated-description.txt', 'utf8').trim();
+            } catch (e) {
+              core.warning('Could not read generated description file: ' + e.message);
+              return;
+            }
+
+            if (!newBody) {
+              core.warning('Generated description was empty — skipping update.');
+              return;
+            }
+
+            // Add a small footer noting this was auto-generated
+            const footer = '\n\n---\n> _Auto-generated by [PR Description workflow](.github/workflows/pr-description.yml). Edit as needed._';
+            const method = '${{ steps.generate.outputs.method }}';
+            const aiNote = method === 'ai' ? ' (AI-assisted)' : ' (template)';
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              body: newBody + footer.replace('Edit as needed.', `Edit as needed${aiNote}.`),
+            });
+
+            core.info('PR description updated successfully.');

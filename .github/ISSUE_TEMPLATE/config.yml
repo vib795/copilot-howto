@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GitHub Copilot Documentation
+    url: https://docs.github.com/copilot
+    about: Official GitHub Copilot documentation
+  - name: Discussions
+    url: https://github.com/luongnv89/copilot-howto/discussions
+    about: Ask questions and share ideas with the community

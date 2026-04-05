@@ -1,0 +1,262 @@
+# .github/workflows/test-on-push.yml
+#
+# Run Tests on Push and Pull Request — with Failure Summarization
+#
+# This workflow runs your test suite on every push and pull request.
+# When tests fail, it parses the JSON test output and posts a readable summary
+# directly on the PR, listing which tests failed and their error messages.
+#
+# This eliminates the need for developers to click into raw CI logs to find
+# out which tests failed — the summary is right on the PR.
+#
+# Test runner: Jest (Node.js)
+# To adapt for another test runner:
+#   - Vitest: same flags (--reporter=json), similar output format
+#   - pytest: use --json-report (pip install pytest-json-report)
+#   - Go test: use -json flag and adjust the parsing script
+#
+# To make tests a required check:
+#   Settings → Branches → Require status checks → "Test Suite"
+
+name: Test Suite
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'fix/**'
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
+  pull-requests: write   # Required to post failure summary comments
+
+jobs:
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Run tests on multiple Node.js versions to catch compatibility issues
+      # Remove the matrix if you only need to support one version
+      matrix:
+        node-version: ['18', '20', '22']
+
+    steps:
+      # ── Step 1: Check out source code ─────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── Step 2: Set up Node.js ─────────────────────────────────────────────
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'   # Cache the npm cache directory between runs
+
+      # ── Step 3: Cache node_modules ────────────────────────────────────────
+      # Caching node_modules directly (in addition to npm cache) avoids
+      # running npm ci on every push when package-lock.json hasn't changed.
+      # This can save 30–60 seconds per run on large projects.
+      - name: Cache node_modules
+        id: cache-node-modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          # Key includes OS, Node version, and hash of lock file
+          # Cache is invalidated when any dependency changes
+          key: node-modules-${{ runner.os }}-node${{ matrix.node-version }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            node-modules-${{ runner.os }}-node${{ matrix.node-version }}-
+
+      # ── Step 4: Install dependencies (only if cache miss) ─────────────────
+      - name: Install dependencies
+        if: steps.cache-node-modules.outputs.cache-hit != 'true'
+        run: npm ci
+
+      # ── Step 5: Run tests with JSON output ───────────────────────────────
+      # --json: output results as JSON (Jest-specific flag)
+      # --outputFile: write JSON to a file (in addition to stdout)
+      # --testPathPattern: optional filter; remove to run all tests
+      # --forceExit: ensure Jest exits after tests complete (useful with async code)
+      # --passWithNoTests: don't fail if no test files are found
+      #
+      # continue-on-error: true — we want to post the failure summary even when
+      # tests fail; we'll re-fail the job explicitly after posting the comment
+      - name: Run tests
+        id: run-tests
+        continue-on-error: true
+        run: |
+          npx jest \
+            --json \
+            --outputFile=/tmp/test-results.json \
+            --forceExit \
+            --passWithNoTests \
+            --ci \
+            2>&1 | tee /tmp/test-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      # ── Step 6: Post test summary on PR (only on pull_request events) ─────
+      - name: Post test failure summary on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        env:
+          TEST_EXIT_CODE: ${{ steps.run-tests.outputs.exit_code }}
+          NODE_VERSION: ${{ matrix.node-version }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const testsFailed = process.env.TEST_EXIT_CODE !== '0';
+            const nodeVersion = process.env.NODE_VERSION;
+
+            // Parse Jest JSON output
+            let results = null;
+            try {
+              const raw = fs.readFileSync('/tmp/test-results.json', 'utf8');
+              results = JSON.parse(raw);
+            } catch (e) {
+              console.log('Could not parse test results JSON:', e.message);
+            }
+
+            // Unique marker so we can update this comment on each push
+            const marker = `<!-- test-summary-node${nodeVersion} -->`;
+            let body;
+
+            if (!testsFailed) {
+              body = [
+                marker,
+                `## Test Results (Node.js ${nodeVersion})`,
+                '',
+                'All tests passed.',
+                '',
+              ].join('\n');
+
+              if (results) {
+                body += `- **${results.numPassedTests}** tests passed`;
+                body += results.numSkippedTests > 0 ? ` (${results.numSkippedTests} skipped)` : '';
+                body += '\n';
+                body += `- Duration: ${(results.testResults?.reduce((a, t) => a + (t.perfStats?.runtime ?? 0), 0) / 1000).toFixed(1)}s\n`;
+              }
+            } else {
+              const lines = [
+                marker,
+                `## Test Results (Node.js ${nodeVersion}) — FAILED`,
+                '',
+              ];
+
+              if (results) {
+                lines.push(
+                  `**${results.numFailedTests} test(s) failed** out of ${results.numTotalTests} total.`,
+                  '',
+                );
+
+                // List failed test suites and their individual failures
+                const failedSuites = (results.testResults ?? []).filter(
+                  suite => suite.status === 'failed'
+                );
+
+                for (const suite of failedSuites.slice(0, 10)) {
+                  // Make the file path relative and readable
+                  const filePath = suite.testFilePath?.replace(process.cwd(), '') ?? suite.testFilePath;
+                  lines.push(`### \`${filePath}\``);
+                  lines.push('');
+
+                  const failedTests = (suite.testResults ?? []).filter(
+                    t => t.status === 'failed'
+                  );
+
+                  for (const test of failedTests.slice(0, 5)) {
+                    lines.push(`**FAIL** ${test.ancestorTitles?.join(' > ')} > ${test.title}`);
+                    if (test.failureMessages?.[0]) {
+                      // Extract the first line of the failure message (usually the most relevant)
+                      const firstLine = test.failureMessages[0].split('\n')[0];
+                      lines.push('```');
+                      lines.push(firstLine.trim());
+                      lines.push('```');
+                    }
+                    lines.push('');
+                  }
+
+                  if (failedTests.length > 5) {
+                    lines.push(`_... and ${failedTests.length - 5} more failures in this file_`);
+                    lines.push('');
+                  }
+                }
+
+                if (failedSuites.length > 10) {
+                  lines.push(`_... and ${failedSuites.length - 10} more failing test files_`);
+                  lines.push('');
+                }
+              } else {
+                // Couldn't parse JSON — fall back to raw output excerpt
+                lines.push('Could not parse test results. Raw output:');
+                lines.push('');
+                lines.push('```');
+                try {
+                  const rawOutput = fs.readFileSync('/tmp/test-output.txt', 'utf8');
+                  lines.push(rawOutput.split('\n').slice(-30).join('\n'));
+                } catch {
+                  lines.push('(output not available)');
+                }
+                lines.push('```');
+              }
+
+              lines.push('');
+              lines.push('> Check the [Actions run](' + context.payload.pull_request?.html_url + '/checks) for full logs.');
+
+              body = lines.join('\n');
+            }
+
+            // Find or create comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else if (testsFailed) {
+              // Only create a new comment on failure; updates are fine always
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      # ── Step 7: Upload test results as an artifact ────────────────────────
+      # Useful for debugging and for downstream jobs that might need results
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-node${{ matrix.node-version }}
+          path: /tmp/test-results.json
+          retention-days: 7
+          # Don't fail the workflow if there's no results file
+          if-no-files-found: ignore
+
+      # ── Step 8: Re-fail the job if tests failed ───────────────────────────
+      # Because we used continue-on-error on the test step so we could post
+      # the comment, we need to explicitly fail here.
+      - name: Fail if tests did not pass
+        if: steps.run-tests.outputs.exit_code != '0'
+        run: |
+          echo "Tests failed. See PR comment for details."
+          exit 1

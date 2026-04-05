@@ -1,0 +1,189 @@
+# GitHub Copilot Skillset Definition
+#
+# This YAML file declares the skills that your Copilot Extension provides.
+# GitHub reads this manifest to understand what skills exist, what parameters
+# they accept, and which HTTP endpoint to call for each skill.
+#
+# How it works:
+#   1. GitHub fetches GET /skillset from your extension server (or you upload
+#      this file directly in your GitHub App settings)
+#   2. Copilot uses the skill descriptions to help users discover skills
+#   3. When a user invokes a skill, GitHub POSTs to the endpoint with the
+#      parsed parameters
+#
+# Reference: https://docs.github.com/en/copilot/building-copilot-extensions/building-a-skillset-for-your-copilot-extension
+
+# The version of the skillset definition schema
+version: "1.0"
+
+# Display name shown in the Copilot Chat UI
+name: "Code Reviewer"
+
+# Short description shown in the Marketplace listing and the @ picker
+description: >
+  Analyzes code for security vulnerabilities, performance issues, and style
+  problems. Explains error messages and stack traces in plain language.
+
+# The list of skills this extension provides
+skills:
+
+  # ---------------------------------------------------------------------------
+  # Skill 1: code-review
+  #
+  # Reviews source code for quality, security, and performance issues.
+  # Users invoke it as: @code-reviewer /code-review
+  # ---------------------------------------------------------------------------
+  - name: code-review
+
+    # The description is used by Copilot to explain the skill to users and
+    # to match it when the user describes what they want to do.
+    description: >
+      Reviews source code for quality, security, and performance issues.
+      Identifies vulnerabilities such as SQL injection, insecure use of eval,
+      and sensitive data exposure. Flags performance anti-patterns like sequential
+      awaits that could be parallelized. Suggests style improvements.
+
+    # The HTTP endpoint on your server that handles this skill.
+    # GitHub will POST to this path with the skill parameters in the body.
+    endpoint: /code-review
+
+    # HTTP method (always POST for skills that receive parameters)
+    method: POST
+
+    # Parameters define what inputs the skill accepts.
+    # Copilot uses these to extract values from the user's message.
+    parameters:
+
+      - name: code
+        description: >
+          The source code to review. The user should paste the code directly
+          in their message, or attach a file using #file.
+        type: string
+        required: true
+
+      - name: focus_area
+        description: >
+          The aspect of the code to focus on. Valid values are:
+          "security" (SQL injection, eval, sensitive data),
+          "performance" (sequential awaits, regex compilation, loop inefficiencies),
+          "style" (var usage, missing comments, naming),
+          "all" (review everything — the default).
+        type: string
+        required: false
+        # Default value used when the user does not specify this parameter
+        default: "all"
+        # Enum restricts accepted values and helps Copilot autocomplete
+        enum:
+          - security
+          - performance
+          - style
+          - all
+
+    # Example invocations shown in the skill's help text
+    examples:
+      - description: "Review a function for all issues"
+        prompt: |
+          @code-reviewer /code-review
+
+          function login(username, password) {
+            const query = "SELECT * FROM users WHERE username = '" + username + "'";
+            return db.query(query);
+          }
+
+      - description: "Focus only on security issues"
+        prompt: |
+          @code-reviewer /code-review focus_area=security
+
+          const token = req.headers['authorization'].split(' ')[1];
+          const decoded = jwt.decode(token);
+          userId = decoded.sub;
+
+      - description: "Review a file attachment"
+        prompt: "@code-reviewer /code-review focus_area=performance #file:src/data/processor.ts"
+
+  # ---------------------------------------------------------------------------
+  # Skill 2: explain-error
+  #
+  # Takes an error message or stack trace and explains what went wrong
+  # and how to fix it.
+  # ---------------------------------------------------------------------------
+  - name: explain-error
+
+    description: >
+      Explains what an error message or stack trace means in plain language
+      and provides concrete steps to fix it. Handles common JavaScript and
+      Node.js errors including TypeError, ReferenceError, SyntaxError,
+      ENOENT, ECONNREFUSED, and UnhandledPromiseRejection. For unrecognized
+      errors, provides a general debugging strategy.
+
+    endpoint: /explain-error
+
+    method: POST
+
+    parameters:
+
+      - name: error_message
+        description: >
+          The full error message, stack trace, or error output to explain.
+          Include as much of the error output as possible — the stack trace
+          often contains the most useful information.
+        type: string
+        required: true
+
+      - name: language
+        description: >
+          The programming language or runtime context. Helps the explainer
+          give more relevant fix suggestions.
+          Defaults to "javascript".
+        type: string
+        required: false
+        default: "javascript"
+        enum:
+          - javascript
+          - typescript
+          - python
+          - go
+          - rust
+          - java
+          - csharp
+
+    examples:
+      - description: "Explain a TypeError from a stack trace"
+        prompt: |
+          @code-reviewer /explain-error
+
+          TypeError: Cannot read properties of undefined (reading 'map')
+              at processItems (app.js:42:23)
+              at async handleRequest (server.js:18:5)
+
+      - description: "Explain a Node.js file system error"
+        prompt: |
+          @code-reviewer /explain-error language=javascript
+
+          Error: ENOENT: no such file or directory, open '/app/config/settings.json'
+              at Object.openSync (node:fs:596:3)
+              at Object.readFileSync (node:fs:464:35)
+
+      - description: "Explain a Python error"
+        prompt: |
+          @code-reviewer /explain-error language=python
+
+          AttributeError: 'NoneType' object has no attribute 'split'
+          File "parser.py", line 34, in parse_line
+            parts = line.split(",")
+
+# ---------------------------------------------------------------------------
+# Extension-level metadata
+# ---------------------------------------------------------------------------
+metadata:
+  # Link to documentation or the extension's GitHub repository
+  homepage: "https://github.com/your-username/code-reviewer-extension"
+
+  # Contact email for support
+  support_email: "support@example.com"
+
+  # Categories used for Marketplace discoverability
+  categories:
+    - code-quality
+    - developer-tools
+    - security

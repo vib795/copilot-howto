@@ -1,0 +1,254 @@
+# .github/workflows/format-check.yml
+#
+# Code Formatting and Linting Check
+#
+# This workflow runs Prettier (formatting) and ESLint (linting) on pull requests.
+# If either check fails, it posts a helpful comment on the PR explaining exactly
+# which commands to run locally to fix the issues — reducing back-and-forth.
+#
+# Tools:
+#   Prettier  → opinionated code formatter (JS, TS, CSS, HTML, JSON, YAML, Markdown)
+#   ESLint    → pluggable linter for JavaScript/TypeScript
+#
+# This workflow does NOT auto-fix and commit changes. Auto-fixing can create
+# confusing commit history and unexpected changes. Instead, it guides the
+# developer to fix locally.
+#
+# To make formatting a required check before merging:
+#   Settings → Branches → Branch protection → Require status checks → "Format Check"
+
+name: Format Check
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+    # Optionally restrict to specific file types to avoid running on docs-only PRs
+    # paths:
+    #   - '**/*.js'
+    #   - '**/*.ts'
+    #   - '**/*.tsx'
+    #   - '**/*.jsx'
+
+# Minimal permissions: read code, write PR comments
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  format-and-lint:
+    name: Format Check
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── Step 1: Check out the PR branch ───────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Only need the latest commit for format/lint checking
+          fetch-depth: 1
+
+      # ── Step 2: Set up Node.js ─────────────────────────────────────────────
+      # The node-version-file option reads .nvmrc or .node-version if present.
+      # Fall back to an explicit version if you don't have those files.
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          # node-version: '20'  # Uncomment if you don't have .nvmrc
+          cache: 'npm'           # Cache ~/.npm for faster installs
+
+      # ── Step 3: Install dependencies ─────────────────────────────────────
+      # npm ci is preferred over npm install in CI:
+      #   - Installs exact versions from package-lock.json
+      #   - Fails if lock file is out of sync (catches missing lock file updates)
+      #   - Faster than npm install in CI environments
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Step 4: Run Prettier format check ────────────────────────────────
+      # --check: exits non-zero if any file would be reformatted
+      # --no-error-on-unmatched-pattern: don't fail if no files match a glob
+      # We capture the output so we can include it in the PR comment
+      - name: Run Prettier check
+        id: prettier
+        # Continue even if Prettier fails — we handle failure in the comment step
+        continue-on-error: true
+        run: |
+          npx prettier --check "**/*.{js,ts,tsx,jsx,css,scss,html,json,yaml,yml,md}" \
+            --no-error-on-unmatched-pattern \
+            2>&1 | tee /tmp/prettier-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      # ── Step 5: Run ESLint ────────────────────────────────────────────────
+      # --format stylish: human-readable output
+      # --max-warnings 0: treat warnings as errors (remove for a more lenient policy)
+      # --ext: file extensions to lint
+      - name: Run ESLint
+        id: eslint
+        continue-on-error: true
+        run: |
+          npx eslint . \
+            --ext .js,.ts,.tsx,.jsx \
+            --format stylish \
+            --max-warnings 0 \
+            2>&1 | tee /tmp/eslint-output.txt
+          echo "exit_code=${PIPESTATUS[0]}" >> $GITHUB_OUTPUT
+
+      # ── Step 6: Post a helpful comment if either check failed ─────────────
+      # This step always runs, but only posts/updates a comment if there were failures.
+      # If everything passed, it posts a success confirmation (or removes the old comment).
+      - name: Post format check results as PR comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          PRETTIER_EXIT: ${{ steps.prettier.outputs.exit_code }}
+          ESLINT_EXIT: ${{ steps.eslint.outputs.exit_code }}
+        with:
+          script: |
+            const fs = require('fs');
+            const prettierFailed = process.env.PRETTIER_EXIT !== '0';
+            const eslintFailed   = process.env.ESLINT_EXIT   !== '0';
+
+            // Read captured output (truncate if very long)
+            function readOutput(path, maxLines = 50) {
+              try {
+                const content = fs.readFileSync(path, 'utf8').trim();
+                const lines = content.split('\n');
+                if (lines.length <= maxLines) return content;
+                return lines.slice(0, maxLines).join('\n') + `\n... (${lines.length - maxLines} more lines)`;
+              } catch {
+                return '(output not available)';
+              }
+            }
+
+            const prettierOutput = readOutput('/tmp/prettier-output.txt');
+            const eslintOutput   = readOutput('/tmp/eslint-output.txt');
+
+            const marker = '<!-- format-check-comment -->';
+            let body;
+
+            if (!prettierFailed && !eslintFailed) {
+              // All checks passed — post a clean confirmation
+              body = [
+                marker,
+                '## Format Check',
+                '',
+                'All formatting and linting checks passed.',
+                '',
+                '- Prettier: no formatting issues found',
+                '- ESLint: no lint errors or warnings found',
+              ].join('\n');
+            } else {
+              // One or more checks failed — post detailed fix instructions
+              const lines = [
+                marker,
+                '## Format Check Failed',
+                '',
+                'One or more formatting/linting checks failed. Please fix the issues before merging.',
+                '',
+                '### How to fix locally',
+                '',
+                '```bash',
+                '# 1. Pull the latest changes from this branch',
+                `git fetch origin && git checkout ${context.payload.pull_request.head.ref}`,
+                '',
+                '# 2. Install dependencies (if you haven\'t already)',
+                'npm ci',
+                '',
+              ];
+
+              if (prettierFailed) {
+                lines.push(
+                  '# 3. Fix Prettier formatting automatically',
+                  'npx prettier --write "**/*.{js,ts,tsx,jsx,css,scss,html,json,yaml,yml,md}"',
+                  '',
+                );
+              }
+
+              if (eslintFailed) {
+                lines.push(
+                  '# 4. Fix auto-fixable ESLint issues',
+                  'npx eslint . --ext .js,.ts,.tsx,.jsx --fix',
+                  '',
+                  '# 5. Review remaining ESLint issues manually',
+                  'npx eslint . --ext .js,.ts,.tsx,.jsx --max-warnings 0',
+                  '',
+                );
+              }
+
+              lines.push(
+                '# Commit and push your fixes',
+                'git add -p   # Review changes before staging',
+                'git commit -m "fix: resolve formatting and lint issues"',
+                'git push',
+                '```',
+                '',
+              );
+
+              if (prettierFailed) {
+                lines.push(
+                  '<details>',
+                  '<summary>Prettier output</summary>',
+                  '',
+                  '```',
+                  prettierOutput,
+                  '```',
+                  '',
+                  '</details>',
+                  '',
+                );
+              }
+
+              if (eslintFailed) {
+                lines.push(
+                  '<details>',
+                  '<summary>ESLint output</summary>',
+                  '',
+                  '```',
+                  eslintOutput,
+                  '```',
+                  '',
+                  '</details>',
+                );
+              }
+
+              body = lines.join('\n');
+            }
+
+            // Find existing comment from a previous run and update it, or create new
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.startsWith(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      # ── Step 7: Fail the workflow if any check failed ─────────────────────
+      # This ensures the GitHub status check reports "failure" so branch protection
+      # can block the merge. (The individual steps used continue-on-error so we
+      # could post the comment first.)
+      - name: Fail if checks did not pass
+        if: steps.prettier.outputs.exit_code != '0' || steps.eslint.outputs.exit_code != '0'
+        run: |
+          echo "One or more format checks failed. See the PR comment for fix instructions."
+          exit 1

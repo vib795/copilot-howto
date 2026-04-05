@@ -1,0 +1,171 @@
+{
+  "ignorePatterns": [
+    {
+      "pattern": "^https://docs\\.example\\.com",
+      "comment": "Example placeholder URLs in documentation templates"
+    },
+    {
+      "pattern": "^\\./docs/",
+      "comment": "Example relative paths in documentation templates"
+    },
+    {
+      "pattern": "^FORMS\\.md$|^REFERENCE\\.md$",
+      "comment": "Example file references in skill templates"
+    },
+    {
+      "pattern": "^https://en\\.wikipedia\\.org/wiki/N%2B1",
+      "comment": "Wikipedia N+1 article - URL encoding issues"
+    },
+    {
+      "pattern": "^https://twitter.com",
+      "comment": "Twitter/X links require authentication"
+    },
+    {
+      "pattern": "^https://x.com",
+      "comment": "X (Twitter) links require authentication"
+    },
+    {
+      "pattern": "copilot-howto",
+      "comment": "Self-referencing links and not-yet-renamed repo URLs"
+    },
+    {
+      "pattern": "^https://docs\\.github\\.com(/en)?/copilot",
+      "comment": "GitHub Copilot docs - path structure varies; some sub-paths return 404 depending on redirect rules"
+    },
+    {
+      "pattern": "YOUR-USERNAME",
+      "comment": "Placeholder GitHub username in documentation examples"
+    },
+    {
+      "pattern": "^https://docs\\.claude\\.com",
+      "comment": "Claude docs - URL structure may vary"
+    },
+    {
+      "pattern": "^https://docs\\.anthropic\\.com",
+      "comment": "Anthropic docs - May have authentication or access restrictions"
+    },
+    {
+      "pattern": "^https://code\\.claude\\.com",
+      "comment": "GitHub Copilot docs - May require auth or have dynamic routing"
+    },
+    {
+      "pattern": "^https://plugins\\.claude\\.com",
+      "comment": "Plugin marketplace - May have access restrictions"
+    },
+    {
+      "pattern": "^https://medium\\.com",
+      "comment": "Medium posts - May have paywall or tracking restrictions"
+    },
+    {
+      "pattern": "^https://modelcontextprotocol\\.io",
+      "comment": "MCP docs - May have infrastructure limitations"
+    },
+    {
+      "pattern": "^https://discord\\.gg",
+      "comment": "Discord invite links - May expire or have access issues"
+    },
+    {
+      "pattern": "^https://bsky\\.app",
+      "comment": "BlueSky links - May require authentication"
+    },
+    {
+      "pattern": "^https://api\\.star-history\\.com",
+      "comment": "External badge service - May have rate limiting"
+    },
+    {
+      "pattern": "^https://jazz\\.tools",
+      "comment": "External tool links - May have dynamic routing"
+    },
+    {
+      "pattern": "^https://mcp\\.notion\\.com",
+      "comment": "Notion-hosted docs - May require authentication"
+    },
+    {
+      "pattern": "YOUR-ORG",
+      "comment": "Placeholder org name in documentation templates"
+    },
+    {
+      "pattern": "YOUR-ENTERPRISE",
+      "comment": "Placeholder enterprise name in documentation templates"
+    },
+    {
+      "pattern": "proxy\\.corp\\.example\\.com",
+      "comment": "Corporate proxy example URL - not a real endpoint"
+    },
+    {
+      "pattern": "user:pass@proxy",
+      "comment": "Placeholder proxy credentials in documentation templates"
+    },
+    {
+      "pattern": "^https://api\\.githubcopilot\\.com",
+      "comment": "Real Copilot API endpoint - may be blocked by CI firewalls"
+    },
+    {
+      "pattern": "ngrok\\.io",
+      "comment": "Placeholder ngrok tunnel URLs used in extension development examples"
+    },
+    {
+      "pattern": "your-ngrok-url",
+      "comment": "Placeholder ngrok URL in scaffold documentation"
+    },
+    {
+      "pattern": "^https://github.com/luongnv89/copilot-howto\\.git$",
+      "comment": "Repo clone URL - repo may not exist yet under this name"
+    },
+    {
+      "pattern": "^https://docs\\.github\\.com/en/copilot",
+      "comment": "GitHub Copilot docs - /en/ prefix sometimes redirects; use docs.github.com/copilot directly"
+    },
+    {
+      "pattern": "^https://github\\.com/marketplace/(azure-for-github-copilot|datadog-for-github-copilot|jira|mintlify|linear|sourcegraph|mongodb|readme)",
+      "comment": "GitHub Marketplace extension URLs - individual listing slugs may change"
+    },
+    {
+      "pattern": "^http://localhost",
+      "comment": "Localhost dev server URLs in scaffold documentation"
+    },
+    {
+      "pattern": "^https://github\\.com/your-username",
+      "comment": "Placeholder GitHub username in scaffold documentation"
+    },
+    {
+      "pattern": "my-code-reviewer\\.up\\.railway\\.app|your-app\\.onrender\\.com",
+      "comment": "Placeholder deployment URLs in scaffold documentation"
+    },
+    {
+      "pattern": "copilot-workspace\\.githubnext\\.com|github\\.com/features/copilot/workspace",
+      "comment": "Copilot Workspace preview URLs - access restricted or path may change"
+    },
+    {
+      "pattern": "cli\\.github\\.com/packages",
+      "comment": "GitHub CLI packages page - URL may redirect or change"
+    },
+    {
+      "pattern": "proxy\\.company\\.com",
+      "comment": "Generic corporate proxy example URL - not a real endpoint"
+    },
+    {
+      "pattern": "marketplace\\.visualstudio\\.com/items",
+      "comment": "VS Code Marketplace extension URLs - may require auth or have URL changes"
+    },
+    {
+      "pattern": "YOUR-USERNAME",
+      "comment": "Placeholder GitHub username in documentation examples"
+    },
+    {
+      "pattern": "^https://docs\\.github\\.com/copilot/building-copilot-extensions$",
+      "comment": "Short-form Copilot Extensions docs URL - use /en/ prefixed version in content"
+    }
+  ],
+  "replacementPatterns": [
+    {
+      "pattern": "^/",
+      "replacement": "https://github.com/luongnv89/copilot-howto/blob/main/"
+    }
+  ],
+  "timeout": 10000,
+  "retryOn": [429, 503],
+  "retryCount": 3,
+  "fallbackRetryDelay": 5000,
+  "aliveStatusCodes": [200, 206]
+}

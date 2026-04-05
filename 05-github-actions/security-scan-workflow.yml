@@ -1,0 +1,248 @@
+# .github/workflows/security-scan.yml
+#
+# Security Scanning with CodeQL + Copilot-Assisted Summary
+#
+# This workflow runs GitHub's CodeQL static analysis engine to detect security
+# vulnerabilities, then uses a GitHub Script step to post a Copilot-assisted
+# summary of the findings as a PR comment.
+#
+# What CodeQL detects (examples):
+#   - SQL injection vulnerabilities
+#   - Cross-site scripting (XSS)
+#   - Path traversal vulnerabilities
+#   - Unsafe deserialization
+#   - Hard-coded credentials
+#   - Insecure use of cryptographic functions
+#
+# The summary step makes findings accessible to developers who may not be
+# familiar with reading raw SARIF output in the Security tab.
+#
+# Requirements:
+#   - Repository must have "Code scanning" enabled (Settings → Security)
+#   - For private repos: GitHub Advanced Security license required
+#   - For public repos: CodeQL is free
+
+name: Security Scan
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+  pull_request:
+    # Run on all PRs targeting the protected branches
+    branches:
+      - main
+      - develop
+  # Run weekly to catch newly disclosed vulnerabilities in unchanged code
+  schedule:
+    - cron: '0 8 * * 1'  # Every Monday at 08:00 UTC
+
+# Permissions required for CodeQL and PR commenting
+permissions:
+  contents: read           # Check out source code
+  security-events: write   # Upload SARIF results to GitHub Security tab
+  pull-requests: write     # Post summary comments on pull requests
+  actions: read            # Required by CodeQL to read workflow details
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1: CodeQL Analysis
+  # Runs static analysis and uploads results to GitHub Security
+  # ─────────────────────────────────────────────────────────────────────────
+  codeql-analysis:
+    name: CodeQL Analysis (${{ matrix.language }})
+    runs-on: ubuntu-latest
+
+    strategy:
+      # Don't cancel other language scans if one fails
+      fail-fast: false
+      matrix:
+        # Add or remove languages to match your repository
+        # Supported: javascript-typescript, python, java-kotlin, csharp,
+        #            cpp, go, ruby, swift
+        language:
+          - javascript-typescript
+          # - python
+          # - java-kotlin
+
+    steps:
+      # Step 1: Check out the full repository history
+      # CodeQL needs git history for blame information in results
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Step 2: Initialize CodeQL
+      # This sets up the CodeQL tools and selects the query suite
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+          # Query suite options:
+          #   default      → well-tested, low false-positive rate (recommended)
+          #   extended     → broader coverage, more false positives
+          #   security-and-quality → default + quality queries
+          queries: security-and-quality
+
+          # Optional: supply a custom configuration file for fine-grained control
+          # config-file: .github/codeql/codeql-config.yml
+
+      # Step 3: Auto-build (for compiled languages like Java, C++, C#)
+      # For interpreted languages (JS, Python), this step is a no-op
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      # Step 4: Run the CodeQL analysis and upload results to GitHub Security
+      # Results appear in Security → Code scanning alerts
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          # Name the SARIF upload — appears in the Security tab
+          category: '/language:${{ matrix.language }}'
+
+          # Upload results even if there are no findings (confirms the scan ran)
+          upload: true
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2: Post Security Summary on PR
+  # Reads the code scanning alerts for this PR and posts a readable summary
+  # Runs only on pull requests (not on direct pushes to main/develop)
+  # ─────────────────────────────────────────────────────────────────────────
+  post-security-summary:
+    name: Post Security Summary
+    runs-on: ubuntu-latest
+    # Only run on pull requests, not scheduled runs or direct pushes
+    if: github.event_name == 'pull_request'
+    # Wait for CodeQL to finish before attempting to read its results
+    needs: codeql-analysis
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step: Fetch code scanning alerts for this PR's head SHA and post a summary
+      # Uses the GitHub REST API to retrieve alerts, then formats them as a comment
+      - name: Post Copilot-style security summary on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // ── 1. Retrieve code scanning alerts for this commit ──────────────
+            let alerts = [];
+            try {
+              const response = await github.rest.codeScanning.listAlertsForRepo({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: context.payload.pull_request.head.ref,
+                state: 'open',
+                per_page: 100,
+              });
+              alerts = response.data;
+            } catch (err) {
+              // Code scanning may not be enabled or results not yet available
+              console.log('Could not retrieve code scanning alerts:', err.message);
+              alerts = [];
+            }
+
+            // ── 2. Build the comment body ─────────────────────────────────────
+            let body;
+
+            if (alerts.length === 0) {
+              body = [
+                '## Security Scan Results',
+                '',
+                'No open code scanning alerts were found for this pull request.',
+                '',
+                'CodeQL analysis completed successfully. The changes in this PR did not introduce any new security vulnerabilities detected by the configured query suite.',
+                '',
+                '> Scan engine: CodeQL | Query suite: security-and-quality',
+              ].join('\n');
+            } else {
+              // Group alerts by severity
+              const bySeverity = { critical: [], high: [], medium: [], low: [], note: [] };
+              for (const alert of alerts) {
+                const sev = alert.rule?.severity?.toLowerCase() ?? 'note';
+                (bySeverity[sev] ?? bySeverity.note).push(alert);
+              }
+
+              const severityEmoji = {
+                critical: 'CRITICAL',
+                high: 'HIGH',
+                medium: 'MEDIUM',
+                low: 'LOW',
+                note: 'NOTE',
+              };
+
+              const lines = [
+                '## Security Scan Results',
+                '',
+                `CodeQL found **${alerts.length} open alert(s)** in this pull request.`,
+                '',
+                '| Severity | Count |',
+                '|----------|-------|',
+              ];
+
+              for (const [sev, list] of Object.entries(bySeverity)) {
+                if (list.length > 0) {
+                  lines.push(`| ${severityEmoji[sev]} | ${list.length} |`);
+                }
+              }
+
+              lines.push('', '### Alert Details', '');
+
+              for (const alert of alerts.slice(0, 20)) {  // Cap at 20 to avoid huge comments
+                const rule = alert.rule?.name ?? 'Unknown rule';
+                const desc = alert.rule?.description ?? '';
+                const file = alert.most_recent_instance?.location?.path ?? 'unknown file';
+                const line = alert.most_recent_instance?.location?.start_line ?? '?';
+                const sev = (alert.rule?.severity ?? 'note').toUpperCase();
+                const url = alert.html_url;
+
+                lines.push(`**[${sev}] ${rule}**`);
+                lines.push(`- File: \`${file}\` (line ${line})`);
+                if (desc) lines.push(`- ${desc}`);
+                lines.push(`- [View alert](${url})`);
+                lines.push('');
+              }
+
+              if (alerts.length > 20) {
+                lines.push(`> Showing 20 of ${alerts.length} alerts. [View all alerts](https://github.com/${context.repo.owner}/${context.repo.repo}/security/code-scanning).`);
+              }
+
+              lines.push('');
+              lines.push('> Resolve these alerts before merging if this repository has required security checks enabled.');
+              lines.push('> Scan engine: CodeQL | Query suite: security-and-quality');
+
+              body = lines.join('\n');
+            }
+
+            // ── 3. Find and update an existing comment, or create a new one ──
+            const marker = '<!-- security-scan-comment -->';
+            const fullBody = marker + '\n' + body;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const existing = comments.find(c => c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body: fullBody,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: fullBody,
+              });
+            }

@@ -1,0 +1,129 @@
+// VS Code User Settings — GitHub Copilot Custom Instructions
+//
+// Add these settings to your VS Code user settings.json file.
+// To open it: Ctrl+Shift+P (Cmd+Shift+P on macOS) → "Preferences: Open User Settings (JSON)"
+//
+// These instructions apply globally to YOUR VS Code profile, across ALL repositories.
+// They are personal preferences, not team conventions.
+// For team-wide instructions, use .github/copilot-instructions.md in the repository instead.
+//
+// HOW TO NAVIGATE TO THESE IN THE SETTINGS UI:
+//   1. Open Settings (Ctrl+, / Cmd+,)
+//   2. Search for "copilot instructions"
+//   3. Click "Edit in settings.json" next to each setting
+//
+// INSTRUCTION OBJECT FORMATS:
+//   { "text": "Your instruction here" }          — inline text
+//   { "file": "./path/to/instructions.md" }      — load from a file (relative to workspace root)
+//
+// NOTE: These are merged with project-level .github/copilot-instructions.md instructions.
+// If they conflict, project-level instructions typically take precedence, but behavior
+// may vary. Avoid contradictions between the two levels.
+
+{
+  // ─────────────────────────────────────────────────────────────────────────
+  // CODE GENERATION INSTRUCTIONS
+  // Applied to: all code generation commands (/fix, /new, /simplify, /doc,
+  //             and general code generation prompts)
+  // Not applied to: /tests (use testGeneration.instructions for that)
+  // ─────────────────────────────────────────────────────────────────────────
+  "github.copilot.chat.codeGeneration.instructions": [
+
+    // ── Language & Type Safety ────────────────────────────────────────────
+    {
+      "text": "Always use TypeScript with strict mode. Never use the 'any' type. If the type is truly unknown, use 'unknown' and narrow it with a type guard before use."
+    },
+    {
+      "text": "Never use 'var'. Use 'const' by default. Use 'let' only when the variable must be reassigned. Never reassign a 'const' — if you need mutation, use a mutable data structure."
+    },
+
+    // ── Functional Style ──────────────────────────────────────────────────
+    {
+      "text": "Prefer functional programming patterns: use 'map', 'filter', 'reduce', 'flatMap', and 'find' over imperative 'for' loops when readability is equivalent or better."
+    },
+    {
+      "text": "Use 'async/await' for all asynchronous code. Never use '.then()' chains unless interoperating with code that requires it. Always 'await' promises — never leave floating promises unhandled."
+    },
+    {
+      "text": "Prefer immutability: use spread syntax ({ ...obj, key: newValue }) or Array methods that return new arrays rather than mutating objects and arrays in place. Mutation is acceptable inside a function's local scope when performance matters."
+    },
+
+    // ── Naming & Readability ──────────────────────────────────────────────
+    {
+      "text": "Use descriptive, intention-revealing variable names. Avoid single-letter names except for standard loop indices (i, j, k) and mathematical conventions. A name like 'userSessionToken' is better than 'tok' or 'token'."
+    },
+    {
+      "text": "Boolean variables and function names that return booleans should use an 'is', 'has', 'can', or 'should' prefix. Examples: 'isAuthenticated', 'hasPermission', 'canRetry'."
+    },
+    {
+      "text": "Functions should do one thing. If a function has more than one level of abstraction, split it. Function names should be verb phrases: 'getUserById', 'calculateTotalCents', 'validateEmailFormat'."
+    },
+
+    // ── Error Handling ────────────────────────────────────────────────────
+    {
+      "text": "Always handle errors explicitly. Never use empty catch blocks. If an error is intentionally ignored, add a comment explaining why. Prefer typed custom error classes over generic 'Error' objects when the caller needs to distinguish error types."
+    },
+
+    // ── Code Output Style ─────────────────────────────────────────────────
+    {
+      "text": "When generating code, prefer named exports over default exports for functions, classes, and components. Named exports are easier to refactor and make imports more explicit."
+    },
+    {
+      "text": "Do not add explanatory inline comments for code that is self-explanatory. Add comments only for non-obvious decisions: 'why' this approach was chosen, known gotchas, or references to external specs."
+    }
+  ],
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // TEST GENERATION INSTRUCTIONS
+  // Applied to: /tests command and Copilot-generated test code
+  // These are merged with codeGeneration.instructions for test generation,
+  // so you do not need to repeat general style rules here.
+  // ─────────────────────────────────────────────────────────────────────────
+  "github.copilot.chat.testGeneration.instructions": [
+
+    // ── Framework & Structure ─────────────────────────────────────────────
+    {
+      "text": "Always write tests using Jest. Use 'describe' blocks to group tests by function or class method, and 'it' blocks for individual test cases. Never use the bare 'test()' function at the top level."
+    },
+    {
+      "text": "Structure: one 'describe' block per function or class being tested. Nest additional 'describe' blocks for different scenarios (e.g., describe('when the user is authenticated', () => { ... })). Keep nesting to 2 levels maximum."
+    },
+
+    // ── Test Names ────────────────────────────────────────────────────────
+    {
+      "text": "Write test names that read as complete sentences describing the expected behavior. Use the format: 'should [expected behavior] when [condition]'. Examples: 'should return null when the user does not exist', 'should throw ValidationError when email is malformed'."
+    },
+    {
+      "text": "Test names should be descriptive enough to identify what failed without reading the test body. Avoid names like 'test 1', 'edge case', or 'it works'."
+    },
+
+    // ── Coverage & Edge Cases ─────────────────────────────────────────────
+    {
+      "text": "Always include edge case tests alongside happy path tests. Minimum edge cases to consider: empty input ('', [], {}), null and undefined, boundary values (0, -1, MAX_INT), and invalid types."
+    },
+    {
+      "text": "For async functions: test both the resolved path (returns the expected value) and the rejected path (throws or rejects with the expected error type)."
+    },
+
+    // ── Assertions ────────────────────────────────────────────────────────
+    {
+      "text": "Write one logical assertion per 'it' block where practical. If multiple assertions are needed to verify a single behavior, that is acceptable — but do not test multiple unrelated behaviors in one 'it'."
+    },
+    {
+      "text": "Use specific matchers over generic equality: prefer 'toBeNull()' over 'toBe(null)', 'toHaveLength(3)' over 'toBe(3)' for arrays, 'toContain()' for membership checks, 'toThrow(ErrorClass)' over 'toThrow()'."
+    },
+
+    // ── Mocking ───────────────────────────────────────────────────────────
+    {
+      "text": "Mock external dependencies (database, HTTP clients, file system, email services) in unit tests. Do not mock the code under test itself. Use 'jest.spyOn' for method-level mocks and 'jest.mock()' for module-level mocks."
+    },
+    {
+      "text": "Always clean up mocks: use 'jest.clearAllMocks()' in 'beforeEach' or 'afterEach' to prevent test pollution. If a mock has state (e.g., call counts), reset it before each test."
+    },
+
+    // ── Arrangement ───────────────────────────────────────────────────────
+    {
+      "text": "Use the Arrange / Act / Assert (AAA) comment structure in each test block to visually separate setup, execution, and verification. Example: // Arrange ... // Act ... // Assert ..."
+    }
+  ]
+}
