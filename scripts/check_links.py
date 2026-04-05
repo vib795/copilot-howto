@@ -52,6 +52,14 @@ SKIP_DOMAINS = {
     "githubnext.com",
     # Azure AI inference endpoint — requires auth
     "models.inference.ai.azure.com",
+    # JetBrains Plugin Marketplace — blocks HEAD requests from CI IP ranges
+    "plugins.jetbrains.com",
+    # Security/advisory sites known to be unreliable in CI environments
+    "cwe.mitre.org",
+    "www.first.org",
+    "first.org",
+    "cheatsheetseries.owasp.org",
+    "owasp.org",
 }
 SKIP_DOMAIN_SUFFIXES = (".example.com", ".example.org", ".internal")
 # Placeholder/template URLs that are intentionally non-resolvable
