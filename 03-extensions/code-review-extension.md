@@ -26,10 +26,10 @@ This extension is built as a **skillset extension** with a single `/review` skil
 ```mermaid
 graph TD
     U["User in Copilot Chat<br/>@code-reviewer /review"] -->|POST| GH["GitHub Copilot<br/>Extension Router"]
-    GH -->|POST /review<br/>{ code, focus }| APP["Express Server<br/>/review endpoint"]
+    GH -->|POST /review code+focus| APP["Express Server<br/>/review endpoint"]
     APP -->|Analyze| CHECKLIST["Review Checklist Engine<br/>(rule-based + optional LLM)"]
     CHECKLIST -->|findings| FORMATTER["Markdown Report Builder"]
-    FORMATTER -->|{ type: 'text', text: '...' }| GH
+    FORMATTER -->|text response| GH
     GH -->|Rendered Markdown| U
 
     style U fill:#e8f4f8

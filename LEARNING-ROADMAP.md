@@ -20,7 +20,7 @@ Answer these questions to find your level:
 
 ---
 
-## Level 1 — Beginner (3-4 hours)
+## Level 1: Beginner (3-4 hours)
 
 **Goal:** Master the built-in features that every Copilot user should know cold.
 
@@ -54,7 +54,7 @@ Answer these questions to find your level:
 
 ---
 
-## Level 2 — Intermediate (4-5 hours)
+## Level 2: Intermediate (4-5 hours)
 
 **Goal:** Use Copilot's context system effectively and connect it to your workflows.
 
@@ -101,7 +101,7 @@ Answer these questions to find your level:
 
 ---
 
-## Level 3 — Advanced (3-4 hours)
+## Level 3: Advanced (3-4 hours)
 
 **Goal:** Build custom tooling and use Copilot for complex multi-step tasks.
 
