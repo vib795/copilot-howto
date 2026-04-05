@@ -75,7 +75,7 @@ data: [DONE]
 Each `data:` line is a JSON object. The `[DONE]` sentinel signals the end of the stream. GitHub reassembles the chunks and renders them as Markdown in the chat panel.
 
 **Important formatting rules:**
-- Each event must be on a single line starting with `data: `
+- Each event must be on a single line starting with `data:` followed by a space
 - There must be a blank line after each event (the SSE spec requires this)
 - The final event must be `data: [DONE]`
 - Do not close the connection before sending `[DONE]`

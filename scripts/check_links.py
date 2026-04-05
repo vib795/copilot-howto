@@ -27,7 +27,9 @@ SKIP_DOMAINS = {
     "api.star-history.com",
     "example.com",
     "localhost",
+    "localhost:3000",
     "localhost:4040",
+    "localhost:8080",
     "127.0.0.1",
     "my-webhook.example.com",
     "git.internal",
@@ -46,6 +48,10 @@ SKIP_DOMAINS = {
     "cli.github.com",
     # ngrok tunnels used in scaffold examples — always placeholder
     "ngrok.io",
+    # GitHub Next projects — access-restricted or preview pages
+    "githubnext.com",
+    # Azure AI inference endpoint — requires auth
+    "models.inference.ai.azure.com",
 }
 SKIP_DOMAIN_SUFFIXES = (".example.com", ".example.org", ".internal")
 # Placeholder/template URLs that are intentionally non-resolvable
@@ -58,6 +64,8 @@ SKIP_URL_PATTERNS = {
     "docs.example.com",
     # Self-referencing repo links — repo may not exist at this name yet
     "copilot-howto",
+    # Original source repo reference in RELEASE_NOTES — may not be public
+    "luongnv89/claude-howto",
     # GitHub Copilot docs — path structure varies; some deep paths return 404
     "docs.github.com/en/copilot",
     "docs.github.com/copilot",
