@@ -31,11 +31,11 @@
 Lesson folders use a **two-digit numbered prefix** followed by a **kebab-case** descriptor:
 
 ```
-01-slash-commands/
-02-custom-instructions/
-03-extensions/
+03-slash-commands/
+05-custom-instructions/
+14-extensions/
 04-chat-variables/
-05-github-actions/
+12-github-actions/
 ```
 
 The number reflects the learning path order from beginner to advanced.
@@ -44,7 +44,7 @@ The number reflects the learning path order from beginner to advanced.
 
 | Type | Convention | Examples |
 |------|-----------|----------|
-| **Lesson README** | `README.md` | `01-slash-commands/README.md` |
+| **Lesson README** | `README.md` | `03-slash-commands/README.md` |
 | **Feature file** | Kebab-case `.md` | `explain-with-context.md`, `suggest-patterns.md` |
 | **GitHub Actions workflow** | Kebab-case `.yml` | `pr-review-workflow.yml`, `format-check-workflow.yml` |
 | **JavaScript scaffold** | Standard names | `index.js`, `server.js` |
@@ -293,7 +293,7 @@ Always specify a language tag for syntax highlighting:
 ```bash
 # Copy the custom instructions template to your project
 mkdir -p .github
-cp 02-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
+cp 05-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
 ```
 
 - Add a **comment line** before non-obvious commands
@@ -307,7 +307,7 @@ Use this pattern for installation instructions:
 
 ```bash
 # Copy the custom instructions template to your project
-cp 02-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
+cp 05-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
 ```
 
 ### Multi-step Workflows
@@ -317,7 +317,7 @@ cp 02-custom-instructions/project-copilot-instructions.md .github/copilot-instru
 mkdir -p .github
 
 # Step 2: Copy the instructions template
-cp 02-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
+cp 05-custom-instructions/project-copilot-instructions.md .github/copilot-instructions.md
 
 # Step 3: Edit to match your stack
 code .github/copilot-instructions.md
@@ -332,16 +332,16 @@ code .github/copilot-instructions.md
 Use relative paths for all internal links:
 
 ```markdown
-[Slash Commands](01-slash-commands/)
-[Extensions Guide](03-extensions/)
-[Custom Instructions](02-custom-instructions/#project-level-instructions)
+[Slash Commands](03-slash-commands/)
+[Extensions Guide](14-extensions/)
+[Custom Instructions](05-custom-instructions/#project-level-instructions)
 ```
 
 From a lesson folder back to root or sibling:
 
 ```markdown
 [Back to main guide](../README.md)
-[Related: Extensions](../03-extensions/)
+[Related: Extensions](../14-extensions/)
 ```
 
 ### External Links (Absolute)
@@ -373,8 +373,8 @@ End lessons with a related guides section:
 ```markdown
 ## Related Guides
 
-- [Slash Commands](../01-slash-commands/) — Quick shortcuts
-- [Custom Instructions](../02-custom-instructions/) — Persistent context
+- [Slash Commands](../03-slash-commands/) — Quick shortcuts
+- [Custom Instructions](../05-custom-instructions/) — Persistent context
 - [Chat Variables](../04-chat-variables/) — Context attachment
 ```
 
@@ -466,7 +466,7 @@ Emojis are used **sparingly and purposefully** — only in specific contexts:
 
 ## GitHub Actions YAML
 
-All workflow files in `05-github-actions/` must follow these conventions:
+All workflow files in `12-github-actions/` must follow these conventions:
 
 ### Required Fields
 
@@ -499,7 +499,7 @@ jobs:
 
 ### Screenshots
 
-- Store in the relevant lesson folder (e.g., `01-slash-commands/inline-chat-example.png`)
+- Store in the relevant lesson folder (e.g., `03-slash-commands/inline-chat-example.png`)
 - Use kebab-case file names
 - Include descriptive alt text
 - Prefer SVG for diagrams, PNG for screenshots

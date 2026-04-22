@@ -38,7 +38,7 @@ The audience ranges from developers who have never used Copilot to engineers con
 - All `README.md` files use H2 (`##`) for top-level section headers within the file, never H1 for sections (H1 is reserved for the document title only).
 - All example files (`.js`, `.yml`, `.jsonc`, `.sh`) must start with a comment block explaining what the file demonstrates, what it requires, and how to run it.
 - Markdown files that contain multiple major sections should include a Table of Contents immediately after the opening H1.
-- Module directories are numbered (`01-slash-commands/`, `02-custom-instructions/`, etc.) to enforce a logical reading order.
+- Module directories are numbered (`03-slash-commands/`, `05-custom-instructions/`, etc.) to enforce a logical reading order.
 
 ## GitHub Actions YAML
 
@@ -99,13 +99,13 @@ When a user asks about a specific topic, these are the relevant module directori
 
 | Topic | Directory |
 |---|---|
-| Slash commands (/explain, /fix, /tests, etc.) | `01-slash-commands/` |
-| Custom instructions (.github/copilot-instructions.md) | `02-custom-instructions/` |
-| Copilot Extensions (skillset and agent) | `03-extensions/` |
+| Slash commands (/explain, /fix, /tests, etc.) | `03-slash-commands/` |
+| Custom instructions (.github/copilot-instructions.md) | `05-custom-instructions/` |
+| Copilot Extensions (skillset and agent) | `14-extensions/` |
 | Chat variables (@workspace, #file, etc.) | `04-chat-variables/` |
-| GitHub Actions integration | `05-github-actions/` |
-| Copilot Workspace | `06-copilot-workspace/` |
-| gh copilot CLI | `07-cli/` |
-| Inline suggestions and ghost text | `08-inline-suggestions/` |
-| IDE setup (VS Code, JetBrains, Neovim, Xcode) | `09-ide-integration/` |
-| Enterprise features (policies, audit logs, SSO) | `10-enterprise/` |
+| GitHub Actions integration | `12-github-actions/` |
+| Copilot Workspace | `13-copilot-workspace/` |
+| gh copilot CLI | `06-cli/` |
+| Inline suggestions and ghost text | `01-inline-suggestions/` |
+| IDE setup (VS Code, JetBrains, Neovim, Xcode) | `02-ide-integration/` |
+| Enterprise features (policies, audit logs, SSO) | `15-enterprise/` |

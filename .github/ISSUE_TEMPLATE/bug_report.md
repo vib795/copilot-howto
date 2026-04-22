@@ -25,7 +25,7 @@ What actually happened?
 - **GitHub Copilot Version**: (e.g., 1.0.5)
 - **Operating System**: (e.g., macOS 14.1, Ubuntu 22.04, Windows 11)
 - **Python Version**: (if relevant, e.g., 3.11)
-- **Affected Component**: (e.g., 01-slash-commands, 03-skills, etc.)
+- **Affected Component**: (e.g., 03-slash-commands, 09-skills, etc.)
 
 ## Example Code
 If applicable, provide the example code that's not working:

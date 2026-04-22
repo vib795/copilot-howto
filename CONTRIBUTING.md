@@ -121,16 +121,16 @@ The hooks that run on every commit are:
 ## Directory Structure
 
 ```
-├── 01-slash-commands/          # /explain, /fix, /tests, /doc, /new, /simplify
-├── 02-custom-instructions/     # .github/copilot-instructions.md patterns
-├── 03-extensions/              # Skillset and agent extension scaffolds
+├── 03-slash-commands/          # /explain, /fix, /tests, /doc, /new, /simplify
+├── 05-custom-instructions/     # .github/copilot-instructions.md patterns
+├── 14-extensions/              # Skillset and agent extension scaffolds
 ├── 04-chat-variables/          # @workspace, #file, #codebase, @terminal
-├── 05-github-actions/          # GitHub Actions + Copilot workflows
-├── 06-copilot-workspace/       # Copilot Workspace guide and examples
-├── 07-cli/                     # gh copilot CLI reference
-├── 08-inline-suggestions/      # Ghost text, NES, keyboard shortcuts
-├── 09-ide-integration/         # VS Code, JetBrains, Neovim, Xcode setup
-├── 10-enterprise/              # Policies, content exclusion, audit logs
+├── 12-github-actions/          # GitHub Actions + Copilot workflows
+├── 13-copilot-workspace/       # Copilot Workspace guide and examples
+├── 06-cli/                     # gh copilot CLI reference
+├── 01-inline-suggestions/      # Ghost text, NES, keyboard shortcuts
+├── 02-ide-integration/         # VS Code, JetBrains, Neovim, Xcode setup
+├── 15-enterprise/              # Policies, content exclusion, audit logs
 ├── scripts/                    # Build and utility scripts
 └── README.md                   # Main guide
 ```
@@ -139,41 +139,41 @@ The hooks that run on every commit are:
 
 ### Adding a Slash Command Example
 
-1. Create a `.md` file in `01-slash-commands/`.
+1. Create a `.md` file in `03-slash-commands/`.
 2. Include:
    - What the command does and when to use it
    - Which context variables improve the result
    - A worked example with a realistic scenario
    - A before/after code block where applicable
-3. Update `01-slash-commands/README.md` with a link to the new file.
+3. Update `03-slash-commands/README.md` with a link to the new file.
 
 ### Adding a Custom Instructions Example
 
-1. Add the example to `02-custom-instructions/`.
+1. Add the example to `05-custom-instructions/`.
 2. Include:
    - The instruction text itself (copy-paste ready)
    - An explanation of why each instruction is phrased the way it is
    - The effect it has on Copilot Chat responses
-3. Update `02-custom-instructions/README.md`.
+3. Update `05-custom-instructions/README.md`.
 
 ### Adding an Extension Scaffold
 
-1. Create a directory under `03-extensions/` with a descriptive name.
+1. Create a directory under `14-extensions/` with a descriptive name.
 2. Include:
    - `README.md` — setup steps and what the extension does
    - Source files with inline comments explaining each section
    - Any configuration files (YAML skill definitions, etc.)
-3. Update `03-extensions/README.md`.
+3. Update `14-extensions/README.md`.
 
 ### Adding a GitHub Actions Workflow
 
-1. Create a `.yml` file in `05-github-actions/`.
+1. Create a `.yml` file in `12-github-actions/`.
 2. The workflow must:
    - Include an explicit `permissions:` block
    - Pin all action versions to specific tags or SHA hashes
    - Include a `concurrency:` block
    - Start with a comment explaining what it demonstrates
-3. Update `05-github-actions/README.md`.
+3. Update `12-github-actions/README.md`.
 
 ### Adding a Chat Variable Pattern
 

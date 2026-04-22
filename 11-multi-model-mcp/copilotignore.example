@@ -1,0 +1,156 @@
+# .copilotignore — keep files out of Copilot's context window.
+# Syntax: gitignore-style. Does NOT affect git tracking.
+#
+# Copy this to the repo root as `.copilotignore` and customise.
+# After editing, restart VS Code so Copilot re-reads the rules.
+
+# ---------- Build artefacts ----------
+target/
+build/
+out/
+dist/
+bin/
+obj/
+*.class
+*.jar
+*.war
+*.ear
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.o
+*.obj
+*.exe
+*.dll
+*.dylib
+*.so
+*.a
+
+# ---------- Dependencies (already huge, already documented elsewhere) ----------
+node_modules/
+bower_components/
+vendor/
+.venv/
+venv/
+.pnp/
+.pnp.js
+.yarn/
+Pods/
+
+# ---------- Terraform / IaC state ----------
+*.tfstate
+*.tfstate.*
+*.tfplan
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+
+# ---------- Secrets (belt-and-braces; also .gitignore these) ----------
+*.pem
+*.key
+*.jks
+*.p12
+*.pfx
+*.keystore
+*.crt
+*.csr
+.env
+.env.*
+!.env.example
+!.env.*.example
+secrets/
+.secret/
+.aws/credentials
+.kube/config
+
+# ---------- Generated code ----------
+*.pb.go
+*.pb.py
+*.pb.cc
+*.pb.h
+*_pb2.py
+*_pb2_grpc.py
+generated/
+gen/
+**/*_generated.*
+**/*.generated.*
+
+# ---------- Large data / binary ----------
+*.parquet
+*.arrow
+*.orc
+*.avro
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-journal
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.webp
+*.pdf
+*.mp4
+*.mp3
+*.wav
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+# Keep repo-level diagrams/screenshots if small; exclude only if they bloat context.
+
+# ---------- Test artefacts ----------
+coverage/
+coverage.xml
+lcov.info
+.nyc_output/
+htmlcov/
+.pytest_cache/
+.tox/
+junit.xml
+test-results/
+
+# ---------- Logs ----------
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ---------- Editor / OS ----------
+.idea/
+*.iml
+.DS_Store
+Thumbs.db
+.vscode/chrome/
+.vscode/*.local
+*.swp
+*.swo
+
+# ---------- CI / tooling caches ----------
+.gradle/
+.m2/
+.cache/
+.turbo/
+.nx/
+.next/cache/
+.angular/cache/
+
+# ---------- Platform-specific noise ----------
+*.tsbuildinfo
+.parcel-cache/
+.eslintcache
+.stylelintcache
+
+# ---------- Monorepo: exclude other apps' build outputs, keep source ----------
+# packages/*/dist/
+# apps/*/build/
+
+# ---------- Project-specific (customise) ----------
+# docs/legacy-v1/           # old docs that would confuse the model
+# scripts/one-offs/          # scratch scripts that aren't representative
+# fixtures/*.json             # large test fixtures

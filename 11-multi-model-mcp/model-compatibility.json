@@ -1,0 +1,107 @@
+{
+  "$schema": "https://copilot-anatomy.example/schema/model-compatibility.v1.json",
+  "_comment": "Source of truth for models this repo uses. The copilot-eval CI check fails if any prompt / chatmode / agent references a model that isn't listed here.",
+  "_as_of": "2026-04",
+
+  "models": {
+    "o3": {
+      "provider": "openai",
+      "capabilities": ["reasoning", "tool_use", "json_mode"],
+      "context_window": 200000,
+      "premium_multiplier": 5,
+      "ideal_for": "architecture, planning, multi-step reasoning",
+      "available_in": ["copilot-business", "copilot-enterprise"]
+    },
+    "o4-mini": {
+      "provider": "openai",
+      "capabilities": ["tool_use"],
+      "context_window": 128000,
+      "premium_multiplier": 1,
+      "ideal_for": "inline completions, quick fixes, boilerplate",
+      "available_in": ["copilot-individual", "copilot-business", "copilot-enterprise"]
+    },
+    "gpt-4.1": {
+      "provider": "openai",
+      "capabilities": ["tool_use", "vision"],
+      "context_window": 128000,
+      "premium_multiplier": 1,
+      "ideal_for": "balanced default, DevOps, general tasks",
+      "available_in": ["copilot-individual", "copilot-business", "copilot-enterprise"]
+    },
+    "claude-sonnet-4-5": {
+      "provider": "anthropic",
+      "capabilities": ["code_gen", "tool_use", "thinking", "vision"],
+      "context_window": 200000,
+      "premium_multiplier": 1,
+      "ideal_for": "code gen, review, docs, tests, instruction following",
+      "available_in": ["copilot-business", "copilot-enterprise"]
+    },
+    "claude-opus-4-5": {
+      "provider": "anthropic",
+      "capabilities": ["code_gen", "tool_use", "thinking", "vision"],
+      "context_window": 200000,
+      "premium_multiplier": 5,
+      "ideal_for": "deep review, security audits, nuanced analysis",
+      "available_in": ["copilot-business", "copilot-enterprise"]
+    },
+    "claude-haiku-4-5": {
+      "provider": "anthropic",
+      "capabilities": ["tool_use"],
+      "context_window": 200000,
+      "premium_multiplier": 1,
+      "ideal_for": "fast + cheap chat modes, light review",
+      "available_in": ["copilot-individual", "copilot-business", "copilot-enterprise"]
+    },
+    "gemini-2.5-pro": {
+      "provider": "google",
+      "capabilities": ["long_context", "tool_use", "vision"],
+      "context_window": 1000000,
+      "premium_multiplier": 5,
+      "ideal_for": "reading entire codebases, large files",
+      "available_in": ["copilot-business", "copilot-enterprise"]
+    },
+    "gemini-2.0-flash": {
+      "provider": "google",
+      "capabilities": ["long_context", "tool_use"],
+      "context_window": 1000000,
+      "premium_multiplier": 1,
+      "ideal_for": "fast scan of many files",
+      "available_in": ["copilot-individual", "copilot-business", "copilot-enterprise"]
+    }
+  },
+
+  "slots": {
+    "slot/fast": "o4-mini",
+    "slot/reason": "o3",
+    "slot/balanced": "gpt-4.1",
+    "slot/code": "claude-sonnet-4-5",
+    "slot/thorough": "claude-opus-4-5",
+    "slot/haiku": "claude-haiku-4-5",
+    "slot/longctx": "gemini-2.5-pro",
+    "slot/flash": "gemini-2.0-flash"
+  },
+
+  "fallback_policy": {
+    "_comment": "Gated workflows fail closed; advisory ones may controlled-fall-back.",
+    "default": "fail-closed",
+    "by_tag": {
+      "security": "fail-closed",
+      "release": "fail-closed",
+      "review": "controlled-fallback",
+      "docs": "controlled-fallback",
+      "completion": "controlled-fallback"
+    },
+    "fallback_chains": {
+      "claude-opus-4-5": ["claude-sonnet-4-5", "gpt-4.1"],
+      "claude-sonnet-4-5": ["gpt-4.1", "o4-mini"],
+      "o3": ["gpt-4.1"],
+      "gemini-2.5-pro": ["claude-sonnet-4-5"],
+      "gemini-2.0-flash": ["o4-mini"]
+    }
+  },
+
+  "auto_mode": {
+    "enabled": true,
+    "_comment": "GitHub Auto-mode gives a 10% discount on premium requests and routes to the best-fit model based on the request. Recommended default for chat; explicit model: in prompts/agents where the choice matters."
+  }
+}

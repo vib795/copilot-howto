@@ -1,0 +1,79 @@
+name: copilot-hooks
+
+# Pre/post policy gates invoked by the Copilot coding agent and by normal PR flow.
+#
+# - pre-action-checks : scans the proposed diff for destructive commands, broad
+#                       permissions, and secret leaks. Blocks if fail-closed.
+# - post-action-checks: runs tests and linters after the agent applies changes.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+  workflow_call:
+    inputs:
+      action:
+        description: "pre-action | post-action"
+        required: true
+        type: string
+
+jobs:
+  pre-action-checks:
+    name: Pre-action policy gates
+    runs-on: ubuntu-latest
+    if: >
+      inputs.action == 'pre-action' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
+    env:
+      DESTRUCTIVE_MODE: warn     # start as warn, switch to fail-closed once tuned
+      PERMISSIONS_MODE: warn
+      SECRETS_MODE: fail-closed   # secrets are the one check worth being strict about from day 1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute diff
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1 2>/dev/null || true
+          git diff origin/${{ github.base_ref }}...HEAD > /tmp/pr.diff || git diff > /tmp/pr.diff
+          echo "--- PR diff size ---"
+          wc -l /tmp/pr.diff
+
+      - name: destructive-commands.sh
+        run: cat /tmp/pr.diff | bash .github/hooks/scripts/destructive-commands.sh
+
+      - name: broad-permissions.sh
+        run: cat /tmp/pr.diff | bash .github/hooks/scripts/broad-permissions.sh
+
+      - name: secret-hygiene.sh
+        run: cat /tmp/pr.diff | bash .github/hooks/scripts/secret-hygiene.sh
+
+  post-action-checks:
+    name: Post-action verification
+    runs-on: ubuntu-latest
+    if: inputs.action == 'post-action'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect project type and run tests
+        run: |
+          if [[ -f package.json ]];       then npm test --if-present || exit 1
+          elif [[ -f pyproject.toml ]];   then python -m pytest -q || exit 1
+          elif [[ -f go.mod ]];           then go test ./... || exit 1
+          elif [[ -f pom.xml ]];          then mvn -q -Dtest test || exit 1
+          elif [[ -f Cargo.toml ]];       then cargo test --no-fail-fast || exit 1
+          else
+            echo "No recognised test command; skipping tests."
+          fi
+
+      - name: Run linters if configured
+        run: |
+          if [[ -f .eslintrc ]] || [[ -f .eslintrc.js ]] || [[ -f .eslintrc.json ]]; then
+            npx eslint . || exit 1
+          fi
+          if [[ -f ruff.toml ]] || grep -q '\[tool\.ruff\]' pyproject.toml 2>/dev/null; then
+            pipx install ruff && ruff check . || exit 1
+          fi
+          if [[ -f .golangci.yml ]] || [[ -f .golangci.yaml ]]; then
+            go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+            golangci-lint run || exit 1
+          fi

@@ -1,0 +1,81 @@
+name: copilot-eval
+
+# Run eval checks on every PR or push that touches Copilot assets.
+# Fails the build if any deterministic check fails.
+
+on:
+  pull_request:
+    paths:
+      - '.github/prompts/**'
+      - '.github/skills/**'
+      - '.github/chatmodes/**'
+      - '.github/agents/**'
+      - '.github/instructions/**'
+      - '.github/copilot-instructions.md'
+      - '.github/copilot-asset-manifest.json'
+      - '.github/model-compatibility.json'
+      - '.github/copilot-mcp-profiles.json'
+      - '.github/eval/**'
+      - '.github/hooks/**'
+      - '.github/workflows/copilot-*.yml'
+      - '.vscode/mcp.json'
+      - '.vscode/settings.json'
+      - 'COPILOT-CHANGELOG.md'
+  push:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Copilot assets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools (jq, yq)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+          sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+          yq --version
+          jq --version
+
+      - name: naming.sh
+        run: bash .github/eval/checks/naming.sh
+
+      - name: frontmatter.sh
+        run: bash .github/eval/checks/frontmatter.sh
+
+      - name: model-refs.sh
+        run: bash .github/eval/checks/model-refs.sh
+
+      - name: manifest-sync.sh
+        run: bash .github/eval/checks/manifest-sync.sh
+
+      - name: governance.sh
+        run: bash .github/eval/checks/governance.sh
+
+      - name: doc-consistency.sh
+        run: bash .github/eval/checks/doc-consistency.sh
+
+      - name: deprecation.sh
+        run: bash .github/eval/checks/deprecation.sh
+
+      - name: tool-refs.sh
+        run: bash .github/eval/checks/tool-refs.sh
+
+  summary:
+    name: Eval summary
+    runs-on: ubuntu-latest
+    needs: validate
+    if: always()
+    steps:
+      - name: Report
+        run: |
+          if [[ "${{ needs.validate.result }}" == "success" ]]; then
+            echo "Copilot eval: all checks passed."
+          else
+            echo "Copilot eval: one or more checks failed. See the validate job for details."
+            exit 1
+          fi

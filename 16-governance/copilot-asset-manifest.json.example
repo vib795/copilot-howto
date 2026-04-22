@@ -1,0 +1,79 @@
+{
+  "$schema": "https://copilot-anatomy.example/schema/asset-manifest.v1.json",
+  "_comment": "Source of truth for every Copilot asset in this repo. The manifest-sync eval check fails if any file is missing from this list, or if any entry points at a file that doesn't exist.",
+  "_as_of": "2026-04",
+  "version": "1.0.0",
+
+  "assets": [
+    {
+      "path": ".github/copilot-instructions.md",
+      "type": "team-instructions",
+      "owner": "@org/platform-team",
+      "classification": "internal",
+      "description": "Always-on team-wide Copilot instructions",
+      "status": "active"
+    },
+
+    { "path": ".github/instructions/code-style.instructions.md", "type": "instructions", "owner": "@org/platform-team", "classification": "internal", "description": "Code style rules for Java/Go/Python/TypeScript", "status": "active" },
+    { "path": ".github/instructions/testing.instructions.md", "type": "instructions", "owner": "@org/platform-team", "classification": "internal", "description": "Testing conventions", "status": "active" },
+    { "path": ".github/instructions/api-conventions.instructions.md", "type": "instructions", "owner": "@org/platform-team", "classification": "internal", "description": "REST API design conventions", "status": "active" },
+    { "path": ".github/instructions/infrastructure.instructions.md", "type": "instructions", "owner": "@org/platform-team", "classification": "internal", "description": "Terraform / Kubernetes / Docker conventions", "status": "active" },
+
+    { "path": ".github/prompts/review.prompt.md", "type": "prompt", "owner": "@org/platform-team", "classification": "internal", "description": "Five-lens PR review", "status": "active", "version": "1.0.0", "tags": ["review", "quality"] },
+    { "path": ".github/prompts/fix-issue.prompt.md", "type": "prompt", "owner": "@org/platform-team", "classification": "internal", "description": "Root-cause fix + regression test", "status": "active", "tags": ["bug"] },
+    { "path": ".github/prompts/deploy.prompt.md", "type": "prompt", "owner": "@org/platform-team", "classification": "internal", "description": "Deployment checklist + Helm commands", "status": "active", "tags": ["deploy"] },
+    { "path": ".github/prompts/architect.prompt.md", "type": "prompt", "owner": "@org/architecture-council", "classification": "internal", "description": "Trade-off analysis + ADR", "status": "active", "tags": ["architecture"] },
+    { "path": ".github/prompts/security-scan.prompt.md", "type": "prompt", "owner": "@org/security-team", "classification": "restricted", "description": "OWASP + threat-model audit", "status": "active", "tags": ["security"] },
+    { "path": ".github/prompts/document.prompt.md", "type": "prompt", "owner": "@org/platform-team", "classification": "internal", "description": "Generate idiomatic docstrings", "status": "active", "tags": ["docs"] },
+    { "path": ".github/prompts/explain-codebase.prompt.md", "type": "prompt", "owner": "@org/developer-experience", "classification": "internal", "description": "Explain a subsystem using 1M context", "status": "active", "tags": ["onboarding"] },
+    { "path": ".github/prompts/test-gen.prompt.md", "type": "prompt", "owner": "@org/platform-team", "classification": "internal", "description": "Generate comprehensive tests", "status": "active", "tags": ["testing"] },
+
+    { "path": ".github/skills/helm-upgrade/SKILL.md", "type": "skill", "owner": "@org/platform-team", "classification": "internal", "description": "Helm deploy/rollback runbook", "status": "active", "tags": ["deploy", "kubernetes"] },
+    { "path": ".github/skills/debug-eks/SKILL.md", "type": "skill", "owner": "@org/platform-team", "classification": "internal", "description": "Pod/node debugging runbook", "status": "active", "tags": ["kubernetes", "debug"] },
+    { "path": ".github/skills/terraform-plan/SKILL.md", "type": "skill", "owner": "@org/platform-team", "classification": "internal", "description": "Terraform apply safely", "status": "active", "tags": ["infrastructure"] },
+    { "path": ".github/skills/incident-triage/SKILL.md", "type": "skill", "owner": "@org/sre-team", "classification": "restricted", "description": "Incident response and postmortem", "status": "active", "tags": ["incident", "sre"] },
+
+    { "path": ".github/chatmodes/code-reviewer.chatmode.md", "type": "chatmode", "owner": "@org/platform-team", "classification": "internal", "description": "Pre-merge code reviewer persona", "status": "active" },
+    { "path": ".github/chatmodes/security-auditor.chatmode.md", "type": "chatmode", "owner": "@org/security-team", "classification": "restricted", "description": "Deep security audit persona", "status": "active" },
+    { "path": ".github/chatmodes/architect.chatmode.md", "type": "chatmode", "owner": "@org/architecture-council", "classification": "internal", "description": "Systems architect persona", "status": "active" },
+    { "path": ".github/chatmodes/devops-assistant.chatmode.md", "type": "chatmode", "owner": "@org/platform-team", "classification": "internal", "description": "DevOps troubleshooter persona", "status": "active" },
+    { "path": ".github/chatmodes/longcontext-reader.chatmode.md", "type": "chatmode", "owner": "@org/developer-experience", "classification": "internal", "description": "Codebase onboarding reader (1M context)", "status": "active" },
+    { "path": ".github/chatmodes/test-writer.chatmode.md", "type": "chatmode", "owner": "@org/platform-team", "classification": "internal", "description": "TDD-style test writer persona", "status": "active" },
+
+    { "path": ".github/agents/plan.agent.md", "type": "agent", "owner": "@org/platform-team", "classification": "internal", "description": "Plan agent — produces file-by-file plan", "status": "active" },
+    { "path": ".github/agents/implement.agent.md", "type": "agent", "owner": "@org/platform-team", "classification": "internal", "description": "Implement agent — executes the plan", "status": "active" },
+    { "path": ".github/agents/review.agent.md", "type": "agent", "owner": "@org/platform-team", "classification": "internal", "description": "Review agent — pre-merge review", "status": "active" },
+
+    { "path": ".github/model-compatibility.json", "type": "config", "owner": "@org/platform-team", "classification": "internal", "description": "Model matrix + fallback policy", "status": "active" },
+    { "path": ".github/copilot-mcp-profiles.json", "type": "config", "owner": "@org/security-team", "classification": "restricted", "description": "MCP least-privilege profiles", "status": "active" },
+
+    { "path": ".github/eval/checks/naming.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "File naming validator", "status": "active" },
+    { "path": ".github/eval/checks/frontmatter.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "YAML frontmatter validator", "status": "active" },
+    { "path": ".github/eval/checks/model-refs.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "model: field resolves to a registered model", "status": "active" },
+    { "path": ".github/eval/checks/manifest-sync.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "Filesystem <-> manifest consistency", "status": "active" },
+    { "path": ".github/eval/checks/governance.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "Every manifest entry has owner + classification", "status": "active" },
+    { "path": ".github/eval/checks/doc-consistency.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "Stale reference scanner", "status": "active" },
+    { "path": ".github/eval/checks/deprecation.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "60-day grace period enforcer", "status": "active" },
+    { "path": ".github/eval/checks/tool-refs.sh", "type": "eval-check", "owner": "@org/platform-team", "classification": "internal", "description": "Agent tools resolve to real MCP tools", "status": "active" },
+
+    { "path": ".github/hooks/scripts/destructive-commands.sh", "type": "policy-check", "owner": "@org/security-team", "classification": "restricted", "description": "Block rm -rf, DROP TABLE, terraform destroy", "status": "active" },
+    { "path": ".github/hooks/scripts/broad-permissions.sh", "type": "policy-check", "owner": "@org/security-team", "classification": "restricted", "description": "Block IAM wildcards and admin policies", "status": "active" },
+    { "path": ".github/hooks/scripts/secret-hygiene.sh", "type": "policy-check", "owner": "@org/security-team", "classification": "restricted", "description": "Scan for API keys and private key patterns", "status": "active" },
+
+    { "path": ".github/workflows/copilot-eval.yml", "type": "workflow", "owner": "@org/platform-team", "classification": "internal", "description": "Run eval checks on PRs", "status": "active" },
+    { "path": ".github/workflows/copilot-hooks.yml", "type": "workflow", "owner": "@org/security-team", "classification": "restricted", "description": "Run policy hooks on agent actions", "status": "active" },
+    { "path": ".github/workflows/copilot-setup-steps.yml", "type": "workflow", "owner": "@org/platform-team", "classification": "internal", "description": "Bootstrap coding-agent toolchain", "status": "active" }
+  ],
+
+  "classifications": {
+    "public": "Safe for external share. No sensitive data.",
+    "internal": "Internal workflows; may reference private systems by name.",
+    "restricted": "Handles sensitive data or destructive operations. Requires security-team review."
+  },
+
+  "statuses": {
+    "active": "In use.",
+    "deprecated": "Replaced or retired. Removal date set via deprecated_on.",
+    "removed": "Permanently removed — kept in manifest for audit."
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://copilot-anatomy.example/schema/mcp-profiles.v1.json",
+  "_comment": "Three-tier least-privilege profiles for Copilot MCP tools. The active profile filters what's available from .vscode/mcp.json. Switch profiles via env var COPILOT_MCP_PROFILE.",
+  "_as_of": "2026-04",
+
+  "default_profile": "read-only",
+
+  "profiles": {
+    "read-only": {
+      "description": "Default for most developers and all chat modes that shouldn't mutate anything. Cannot write files, cannot run commands, cannot change infrastructure.",
+      "allowed_tools": [
+        "read_file",
+        "search_workspace",
+        "get_symbol_info",
+        "github.get_issue",
+        "github.list_issues",
+        "github.get_pull_request",
+        "github.list_pull_requests",
+        "github.list_pull_request_files",
+        "github.get_pull_request_comments",
+        "github.search_code",
+        "github.get_workflow_run",
+        "github.list_workflow_runs",
+        "github.get_commit",
+        "filesystem.read",
+        "filesystem.list",
+        "filesystem.exists",
+        "kubernetes.list_pods",
+        "kubernetes.get_pod",
+        "kubernetes.get_logs",
+        "kubernetes.describe_resource",
+        "kubernetes.get_events",
+        "kubernetes.list_deployments",
+        "kubernetes.list_services",
+        "kubernetes.get_config_map",
+        "postgres.list_tables",
+        "postgres.describe_table",
+        "postgres.query",
+        "postgres.explain",
+        "brave.search",
+        "brave.fetch",
+        "aws_docs.search",
+        "memory.recall"
+      ],
+      "denied_tools": [],
+      "applies_to": ["review agents", "security-auditor chatmode", "longcontext-reader chatmode", "onboarding"]
+    },
+
+    "standard": {
+      "description": "Regular development work. Can edit workspace files, run local commands (tests, lint, build), open PRs. Cannot mutate infrastructure.",
+      "extends": "read-only",
+      "allowed_tools_additional": [
+        "write_file",
+        "run_terminal_command",
+        "filesystem.write",
+        "github.create_branch",
+        "github.create_commit",
+        "github.create_pull_request",
+        "github.add_pull_request_comment",
+        "github.add_pull_request_review",
+        "github.close_issue",
+        "memory.store",
+        "memory.forget"
+      ],
+      "denied_tools": [
+        "github.delete_repository",
+        "github.merge_pull_request",
+        "github.delete_branch",
+        "kubernetes.apply",
+        "kubernetes.delete_resource",
+        "kubernetes.scale_deployment",
+        "kubernetes.rollout_restart",
+        "terraform.apply",
+        "terraform.destroy"
+      ],
+      "applies_to": ["implement agent", "code-reviewer chatmode (with hook gates)", "test-writer chatmode"]
+    },
+
+    "elevated": {
+      "description": "Platform / SRE engineers only. Can modify live infrastructure within narrow bounds. Still denies irrecoverable operations.",
+      "extends": "standard",
+      "allowed_tools_additional": [
+        "kubernetes.apply",
+        "kubernetes.rollout_restart",
+        "kubernetes.scale_deployment",
+        "terraform.apply",
+        "github.merge_pull_request"
+      ],
+      "denied_tools": [
+        "github.delete_repository",
+        "github.delete_branch",
+        "kubernetes.delete_resource",
+        "kubernetes.delete_namespace",
+        "terraform.destroy",
+        "postgres.execute"
+      ],
+      "requires_membership": ["platform-team", "sre-team"],
+      "requires_hook_approval": [
+        "destructive-commands",
+        "broad-permissions",
+        "secret-hygiene"
+      ],
+      "applies_to": ["devops-assistant chatmode in production context", "deploy agents"]
+    }
+  },
+
+  "_notes": {
+    "how_to_switch": "Set COPILOT_MCP_PROFILE=standard before opening VS Code, or configure via .vscode/settings.local.json. The profile is read at VS Code startup — restart after changing.",
+    "enforcement": "Profile filtering is applied by the MCP client in VS Code. It is NOT a security boundary against a compromised token — if an attacker has your GITHUB_TOKEN, they can call GitHub APIs directly outside Copilot. Pair profiles with token scoping, hook-level policy checks (.github/hooks/scripts/*), and least-privilege IAM.",
+    "auditing": "All tool calls are logged in the Copilot audit log (Business/Enterprise). Review weekly for unexpected patterns."
+  }
+}

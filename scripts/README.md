@@ -9,7 +9,7 @@ Build an EPUB ebook from the Copilot How To markdown files.
 
 ## Features
 
-- Organizes chapters by folder structure (01-slash-commands, 02-memory, etc.)
+- Organizes chapters by folder structure (03-slash-commands, 02-memory, etc.)
 - Renders Mermaid diagrams as PNG images via Kroki.io API
 - Async concurrent fetching - renders all diagrams in parallel
 - Generates a cover image from the project logo

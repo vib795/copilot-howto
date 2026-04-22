@@ -1,0 +1,38 @@
+{
+  "//": "Recommended VS Code extensions. Commit as .vscode/extensions.json.",
+  "//": "Teammates see a 'This repo recommends extensions — install all?' prompt on open.",
+
+  "recommendations": [
+    "github.copilot",
+    "github.copilot-chat",
+    "github.vscode-github-actions",
+    "github.vscode-pull-request-github",
+
+    "//-formatters-and-linters": "=====================================",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "editorconfig.editorconfig",
+
+    "//-language-specific": "==========================================",
+    "golang.go",
+    "ms-python.python",
+    "ms-python.vscode-pylance",
+    "rust-lang.rust-analyzer",
+    "vscjava.vscode-java-pack",
+
+    "//-infra-and-devops": "===========================================",
+    "hashicorp.terraform",
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+    "ms-azuretools.vscode-docker",
+    "redhat.vscode-yaml",
+
+    "//-utility": "====================================================",
+    "streetsidesoftware.code-spell-checker",
+    "gruntfuggly.todo-tree",
+    "eamodio.gitlens"
+  ],
+
+  "unwantedRecommendations": [
+    "ms-vscode.vscode-typescript-tslint-plugin"
+  ]
+}

@@ -81,7 +81,7 @@ gh copilot suggest --shell-type fish "..."
 # Create
 mkdir -p .github
 touch .github/copilot-instructions.md
-# Edit to add your standards — see 02-custom-instructions/project-copilot-instructions.md
+# Edit to add your standards — see 05-custom-instructions/project-copilot-instructions.md
 ```
 
 **User-level** (VS Code settings.json):
@@ -146,17 +146,189 @@ coverage/
 
 ---
 
+## The Six Primitives (at a glance)
+
+| Primitive | Trigger | Where |
+|---|---|---|
+| Team instructions | Always | `.github/copilot-instructions.md` |
+| Scoped instructions | Auto, by file type | `.github/instructions/*.instructions.md` |
+| Prompt files | Manual — `/command` | `.github/prompts/*.prompt.md` |
+| Skills | Auto-discovered | `.github/skills/<name>/SKILL.md` |
+| Chat modes | Manual — mode picker | `.github/chatmodes/*.chatmode.md` |
+| Agents | Manual or chained | `.github/agents/*.agent.md` |
+
+---
+
+## Custom Prompt Files
+
+```yaml
+# .github/prompts/review.prompt.md
+---
+mode: ask           # ask | edit | agent
+model: claude-sonnet-4-5    # or slot/code
+description: "Five-lens PR review"
+tools: [read_file]  # only needed for mode: agent
+---
+
+Review the diff in #changes across correctness, security, performance, style, tests.
+```
+
+Triggers as `/review` in Copilot Chat. See [Module 07](07-custom-prompts/README.md).
+
+---
+
+## Chat Modes
+
+```yaml
+# .github/chatmodes/security-auditor.chatmode.md
+---
+description: "Deep security audit persona"
+model: claude-opus-4-5
+tools: [read_file, github.search_code]
+---
+
+You are a senior application-security engineer ...
+```
+
+Prerequisite: `"github.copilot.chat.experimental.chatModes": true` in settings.json. See [Module 08](08-chat-modes/README.md).
+
+---
+
+## Skills (Auto-discovered)
+
+```yaml
+# .github/skills/helm-upgrade/SKILL.md
+---
+name: helm-upgrade
+description: >
+  Use when asked to deploy, upgrade, roll back a service to Kubernetes.
+  Also: "bump the image", "release", "promote to prod".
+---
+
+# Runbook body with numbered procedure, decision tables, rollback, etc.
+```
+
+Copilot reads only `description:` for scanning — write it as query-language, not a title. See [Module 09](09-skills/README.md).
+
+---
+
+## Agents (plan → implement → review)
+
+```yaml
+# .github/agents/plan.agent.md
+---
+name: plan
+model: o3
+tools: [read_file, github.search_code]
+handoffs: [implement]
+---
+```
+
+```yaml
+# .github/agents/implement.agent.md
+---
+name: implement
+model: claude-sonnet-4-5
+tools: [read_file, write_file, run_terminal_command]
+handoffs: [review]
+---
+```
+
+```yaml
+# .github/agents/review.agent.md
+---
+name: review
+model: claude-opus-4-5
+tools: [read_file]    # READ-ONLY by design
+---
+```
+
+See [Module 10](10-agents/README.md).
+
+---
+
+## Multi-Model Slots
+
+```json
+// .vscode/settings.json
+{
+  "github.copilot.chat.models": {
+    "slot/fast":     "o4-mini",
+    "slot/reason":   "o3",
+    "slot/code":     "claude-sonnet-4-5",
+    "slot/thorough": "claude-opus-4-5",
+    "slot/longctx":  "gemini-2.5-pro"
+  }
+}
+```
+
+Then `model: slot/thorough` in any prompt / chatmode / agent. See [Module 11](11-multi-model-mcp/README.md).
+
+---
+
+## MCP — `.vscode/mcp.json`
+
+```json
+{
+  "servers": {
+    "github":      { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-github"],
+                     "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${env:GITHUB_TOKEN}" } },
+    "kubernetes":  { "command": "npx", "args": ["-y", "mcp-server-kubernetes"],
+                     "env": { "KUBECONFIG": "${env:KUBECONFIG}" } },
+    "filesystem":  { "command": "npx", "args": ["-y", "@modelcontextprotocol/server-filesystem", "${workspaceFolder}"] }
+  }
+}
+```
+
+Restart VS Code after editing. See [Module 11](11-multi-model-mcp/README.md).
+
+---
+
+## `.copilotignore`
+
+Gitignore-syntax exclusion of files from the Copilot context window:
+
+```gitignore
+target/
+node_modules/
+*.tfstate
+*.pem
+.env
+coverage/
+```
+
+See [Module 11](11-multi-model-mcp/copilotignore.example) for the full template.
+
+---
+
+## Governance: Running Eval Checks Locally
+
+```bash
+# From repo root
+for f in .github/eval/checks/*.sh; do bash "$f" || echo "FAIL: $f"; done
+```
+
+Or individually — `naming.sh`, `frontmatter.sh`, `model-refs.sh`, `manifest-sync.sh`, `governance.sh`, `doc-consistency.sh`, `deprecation.sh`, `tool-refs.sh`. See [Module 16](16-governance/README.md).
+
+---
+
 ## Module Quick Links
 
 | Module | Link |
 |--------|------|
-| Slash Commands | [01-slash-commands/README.md](01-slash-commands/README.md) |
-| Custom Instructions | [02-custom-instructions/README.md](02-custom-instructions/README.md) |
-| Extensions | [03-extensions/README.md](03-extensions/README.md) |
+| Slash Commands | [03-slash-commands/README.md](03-slash-commands/README.md) |
+| Custom Instructions | [05-custom-instructions/README.md](05-custom-instructions/README.md) |
+| Extensions | [14-extensions/README.md](14-extensions/README.md) |
 | Chat Variables | [04-chat-variables/README.md](04-chat-variables/README.md) |
-| GitHub Actions | [05-github-actions/README.md](05-github-actions/README.md) |
-| Copilot Workspace | [06-copilot-workspace/README.md](06-copilot-workspace/README.md) |
-| CLI | [07-cli/README.md](07-cli/README.md) |
-| Inline Suggestions | [08-inline-suggestions/README.md](08-inline-suggestions/README.md) |
-| IDE Integration | [09-ide-integration/README.md](09-ide-integration/README.md) |
-| Enterprise | [10-enterprise/README.md](10-enterprise/README.md) |
+| GitHub Actions | [12-github-actions/README.md](12-github-actions/README.md) |
+| Copilot Workspace | [13-copilot-workspace/README.md](13-copilot-workspace/README.md) |
+| CLI | [06-cli/README.md](06-cli/README.md) |
+| Inline Suggestions | [01-inline-suggestions/README.md](01-inline-suggestions/README.md) |
+| IDE Integration | [02-ide-integration/README.md](02-ide-integration/README.md) |
+| Enterprise | [15-enterprise/README.md](15-enterprise/README.md) |
+| Custom Prompts | [07-custom-prompts/README.md](07-custom-prompts/README.md) |
+| Chat Modes | [08-chat-modes/README.md](08-chat-modes/README.md) |
+| Skills | [09-skills/README.md](09-skills/README.md) |
+| Agents | [10-agents/README.md](10-agents/README.md) |
+| Multi-Model + MCP | [11-multi-model-mcp/README.md](11-multi-model-mcp/README.md) |
+| Governance | [16-governance/README.md](16-governance/README.md) |

@@ -1,0 +1,82 @@
+{
+  "//": "=======================================================================",
+  "//": "TEAM .vscode/settings.json — commit this file",
+  "//": "Covers: model slots, Copilot flags, instructions registry, chat features",
+  "//": "Personal overrides go in .vscode/settings.local.json (gitignored)",
+  "//": "=======================================================================",
+
+  "// Copilot — per-language enable": "=======================================",
+  "github.copilot.enable": {
+    "*": true,
+    "plaintext": false,
+    "markdown": true,
+    "yaml": true,
+    "dockerfile": true,
+    "shellscript": true,
+    "git-commit": false,
+    "git-rebase": false
+  },
+
+  "// Copilot Chat — experimental flags": "=====================================",
+  "//": "chat.experimental.chatModes must be true for .chatmode.md files to appear in the picker",
+  "github.copilot.chat.experimental.chatModes": true,
+  "github.copilot.chat.experimental.codeGeneration": true,
+
+  "// Copilot agent mode": "====================================================",
+  "chat.agent.enabled": true,
+  "chat.agent.mode.default": "standard",
+
+  "// Named model slots": "======================================================",
+  "//": "Prompts / chatmodes / agents reference these as model: slot/<name>",
+  "//": "Change the mapping here when a newer model ships — everything updates at once",
+  "github.copilot.chat.models": {
+    "slot/fast": "o4-mini",
+    "slot/reason": "o3",
+    "slot/balanced": "gpt-4.1",
+    "slot/code": "claude-sonnet-4-5",
+    "slot/thorough": "claude-opus-4-5",
+    "slot/haiku": "claude-haiku-4-5",
+    "slot/longctx": "gemini-2.5-pro",
+    "slot/flash": "gemini-2.0-flash"
+  },
+
+  "// Auto-loaded instruction files": "=========================================",
+  "//": "Registers .github/instructions/*.instructions.md files so Copilot applies them",
+  "//": "by file-type glob. Without this, the applyTo: frontmatter is ignored.",
+  "github.copilot.chat.codeGeneration.instructions": [
+    { "file": ".github/instructions/code-style.instructions.md" },
+    { "file": ".github/instructions/testing.instructions.md" },
+    { "file": ".github/instructions/api-conventions.instructions.md" },
+    { "file": ".github/instructions/infrastructure.instructions.md" }
+  ],
+  "github.copilot.chat.testGeneration.instructions": [
+    { "file": ".github/instructions/testing.instructions.md" }
+  ],
+
+  "// Content exclusion (org-managed at GitHub side; this is a client hint only)": "",
+  "github.copilot.advanced": {
+    "debug.overrideEngine": "",
+    "indentationMode": {
+      "python": "tabs-or-spaces"
+    }
+  },
+
+  "// Chat session defaults": "=================================================",
+  "github.copilot.chat.localeOverride": "en",
+  "github.copilot.chat.welcomeMessage": "never",
+  "github.copilot.chat.followUps": "always",
+
+  "// Editor": "=================================================================",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "explicit"
+  },
+
+  "// Files": "=================================================================",
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+  "files.trimFinalNewlines": true,
+
+  "// Telemetry (adjust to org policy)": "======================================",
+  "telemetry.telemetryLevel": "error"
+}

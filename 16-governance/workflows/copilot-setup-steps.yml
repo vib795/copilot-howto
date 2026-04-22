@@ -1,0 +1,109 @@
+name: copilot-setup-steps
+
+# Bootstraps the Copilot coding agent's sandbox with the language runtimes and
+# tools it needs to verify its own work. Without this file, the coding agent
+# would generate code it can't compile or test.
+#
+# The agent runs this workflow automatically before starting any task assigned
+# from a GitHub issue.
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+jobs:
+  setup-agent-toolchain:
+    name: Install agent toolchain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # --- JVM ---
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Configure Maven with internal mirror (if available)
+        run: |
+          mkdir -p ~/.m2
+          cat > ~/.m2/settings.xml <<'EOF'
+          <settings>
+            <mirrors>
+              <mirror>
+                <id>internal-mirror</id>
+                <url>${env.MAVEN_MIRROR_URL:-https://repo.maven.apache.org/maven2}</url>
+                <mirrorOf>central</mirrorOf>
+              </mirror>
+            </mirrors>
+          </settings>
+          EOF
+
+      # --- Go ---
+      - name: Set up Go 1.22
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Install golangci-lint
+        run: |
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+      # --- Python ---
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python tooling
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry ruff pytest
+
+      # --- Node (for MCP servers invoked via npx, and for JS/TS projects) ---
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # --- Infra tools ---
+      - name: Install OpenTofu
+        run: |
+          curl -sL https://get.opentofu.org/install-opentofu.sh | bash -s -- --install-method deb
+          tofu --version
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'v3.14.0'
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.29.0'
+
+      # --- Verification ---
+      - name: Show installed versions
+        run: |
+          echo "Toolchain ready for Copilot coding agent:"
+          java -version 2>&1 | head -1
+          mvn --version 2>&1 | head -1 || true
+          go version
+          golangci-lint --version 2>&1 | head -1 || true
+          python --version
+          node --version
+          npx --version
+          tofu --version 2>&1 | head -1
+          helm version --short
+          kubectl version --client --output=yaml | head -3
+
+      - name: Cache toolchain for faster re-runs
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.m2
+            ~/go/pkg/mod
+            ~/.cache/pip
+            ~/.cache/ruff
+          key: copilot-agent-toolchain-${{ hashFiles('**/pom.xml', '**/go.sum', '**/pyproject.toml') }}
