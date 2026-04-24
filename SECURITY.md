@@ -101,7 +101,7 @@ These are outside the scope of this project:
 
 **For sensitive security issues, please use GitHub's private vulnerability reporting:**
 
-1. Visit: https://github.com/luongnv89/copilot-howto/security/advisories
+1. Visit: https://github.com/vib795/copilot-howto/security/advisories
 2. Click "Report a vulnerability"
 3. Fill in the vulnerability details
 4. Include:
